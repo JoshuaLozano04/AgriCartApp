@@ -16,9 +16,17 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from apps.payments import views as payment_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Payment pages (public, accessible without /api prefix for PayMongo redirects)
+    path('payment/redirect/', payment_views.payment_redirect, name='payment_redirect'),
+    path('payment/success/', payment_views.payment_success, name='payment_success'),
+    path('payment/failed/', payment_views.payment_failed, name='payment_failed'),
+    # API endpoints
     path('api/', include('apps.users.urls')),
     path('api/', include('apps.products.urls')),
     path('api/', include('apps.orders.urls')),
@@ -26,3 +34,7 @@ urlpatterns = [
     path('api/', include('apps.chat.urls')),
     path('api/', include('apps.analytics.urls')),
 ]
+
+# Serve media files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

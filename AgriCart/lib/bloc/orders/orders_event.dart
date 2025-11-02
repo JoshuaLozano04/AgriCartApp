@@ -18,13 +18,11 @@ class CreateOrderEvent extends OrdersEvent {
 }
 
 class LoadOrdersEvent extends OrdersEvent {
-  final String userId;
-  final String role; // 'buyer' or 'seller'
-
-  const LoadOrdersEvent({required this.userId, required this.role});
+  // userId and role no longer needed - comes from token
+  const LoadOrdersEvent();
 
   @override
-  List<Object?> get props => [userId, role];
+  List<Object?> get props => [];
 }
 
 class LoadOrderDetailsEvent extends OrdersEvent {
@@ -34,5 +32,33 @@ class LoadOrderDetailsEvent extends OrdersEvent {
 
   @override
   List<Object?> get props => [orderId];
+}
+
+class UpdateOrderStatusEvent extends OrdersEvent {
+  final String orderId;
+  final String status;
+
+  const UpdateOrderStatusEvent({
+    required this.orderId,
+    required this.status,
+  });
+
+  @override
+  List<Object?> get props => [orderId, status];
+}
+
+class CreatePaymentEvent extends OrdersEvent {
+  final String orderId;
+  final String paymentMethod;
+  final double amount;
+
+  const CreatePaymentEvent({
+    required this.orderId,
+    required this.paymentMethod,
+    required this.amount,
+  });
+
+  @override
+  List<Object?> get props => [orderId, paymentMethod, amount];
 }
 

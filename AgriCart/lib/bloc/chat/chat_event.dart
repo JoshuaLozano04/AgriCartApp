@@ -8,43 +8,40 @@ abstract class ChatEvent extends Equatable {
 }
 
 class LoadConversationEvent extends ChatEvent {
-  final String user1Id;
   final String user2Id;
+  // user1Id comes from token
 
   const LoadConversationEvent({
-    required this.user1Id,
     required this.user2Id,
   });
 
   @override
-  List<Object?> get props => [user1Id, user2Id];
+  List<Object?> get props => [user2Id];
 }
 
 class SendMessageEvent extends ChatEvent {
-  final String senderId;
   final String receiverId;
   final String message;
+  // senderId comes from token
 
   const SendMessageEvent({
-    required this.senderId,
     required this.receiverId,
     required this.message,
   });
 
   @override
-  List<Object?> get props => [senderId, receiverId, message];
+  List<Object?> get props => [receiverId, message];
 }
 
 class RefreshConversationEvent extends ChatEvent {
-  final String user1Id;
   final String user2Id;
+  // user1Id comes from token
 
   const RefreshConversationEvent({
-    required this.user1Id,
     required this.user2Id,
   });
 
   @override
-  List<Object?> get props => [user1Id, user2Id];
+  List<Object?> get props => [user2Id];
 }
 

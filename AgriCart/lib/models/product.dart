@@ -10,7 +10,7 @@ class Product {
   final String location;
   final double? latitude;
   final double? longitude;
-  final List<String> imageIds;
+  final List<String> imagePaths;
   final bool isActive;
   final String? createdAt;
   final String? updatedAt;
@@ -27,7 +27,7 @@ class Product {
     required this.location,
     this.latitude,
     this.longitude,
-    required this.imageIds,
+    required this.imagePaths,
     required this.isActive,
     this.createdAt,
     this.updatedAt,
@@ -46,7 +46,7 @@ class Product {
       location: json['location'] ?? '',
       latitude: json['latitude']?.toDouble(),
       longitude: json['longitude']?.toDouble(),
-      imageIds: (json['image_ids'] ?? []).map<String>((id) => id.toString()).toList(),
+      imagePaths: (json['image_paths'] ?? []).map<String>((path) => path.toString()).toList(),
       isActive: json['is_active'] ?? true,
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
@@ -66,7 +66,7 @@ class Product {
       'location': location,
       'latitude': latitude,
       'longitude': longitude,
-      'image_ids': imageIds,
+      'image_paths': imagePaths,
       'is_active': isActive,
       'created_at': createdAt,
       'updated_at': updatedAt,

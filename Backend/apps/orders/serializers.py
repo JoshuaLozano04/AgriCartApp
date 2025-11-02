@@ -13,11 +13,11 @@ class OrderItemSerializer(serializers.Serializer):
 
 class OrderSerializer(serializers.Serializer):
     """Serializer for order creation."""
-    buyer_id = serializers.CharField()
-    seller_id = serializers.CharField()
+    # buyer_id comes from authenticated user token
+    # seller_id will be extracted from items' products
     items = OrderItemSerializer(many=True)
     shipping_address = serializers.CharField()
-    payment_method = serializers.ChoiceField(choices=['cod', 'gcash', 'maya', 'bank_transfer'])
+    payment_method = serializers.ChoiceField(choices=['cod', 'gcash', 'bank_transfer'])
     total_amount = serializers.FloatField(min_value=0)
 
 

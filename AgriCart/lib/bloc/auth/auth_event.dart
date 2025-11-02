@@ -66,3 +66,10 @@ class LogoutEvent extends AuthEvent {
   const LogoutEvent();
 }
 
+class LoadStoredTokenEvent extends AuthEvent {
+  const LoadStoredTokenEvent();
+
+  @override
+  List<Object?> get props => [];
+}
+

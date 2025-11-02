@@ -55,11 +55,10 @@ class DeleteProductEvent extends SellerEvent {
 }
 
 class LoadSalesAnalyticsEvent extends SellerEvent {
-  final String sellerId;
-
-  const LoadSalesAnalyticsEvent({required this.sellerId});
+  // sellerId no longer needed - comes from token
+  const LoadSalesAnalyticsEvent();
 
   @override
-  List<Object?> get props => [sellerId];
+  List<Object?> get props => [];
 }
 

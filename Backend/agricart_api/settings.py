@@ -33,6 +33,7 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0').s
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',  # ASGI server must be first
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'channels',  # Django Channels for WebSocket support
     'apps.users',
     'apps.products',
     'apps.orders',
@@ -54,8 +56,10 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'utils.csrf_middleware.DisableCSRFForAPI',  # Disable CSRF for API routes
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'utils.middleware.JWTAuthenticationMiddleware',  # Custom JWT authentication
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -79,17 +83,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'agricart_api.wsgi.application'
+ASGI_APPLICATION = 'agricart_api.asgi.application'
 
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# Note: Using MongoDB as primary database via MongoDBService
+# Django's default database is not used for data storage
+# MongoDB is configured via MONGODB_CONNECTION_STRING and MONGODB_DATABASE_NAME below
+DATABASES = {}
 
 
 # Password validation
@@ -127,6 +130,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media files (User uploads)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -138,8 +146,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
+    # JWT Authentication for API requests
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        'utils.drf_auth.JWTAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
@@ -162,21 +171,72 @@ CORS_ALLOWED_ORIGINS = config(
 
 CORS_ALLOW_CREDENTIALS = True
 
-# Firebase Configuration
+# Allow Authorization header in CORS requests
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',  # This is crucial for JWT tokens!
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# CSRF Configuration - Exempt API routes since we use JWT tokens
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS if isinstance(CORS_ALLOWED_ORIGINS, list) else []
+CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+CSRF_COOKIE_HTTPONLY = False
+
+# Firebase Configuration (for FCM push notifications only)
 FIREBASE_PROJECT_ID = config('FIREBASE_PROJECT_ID', default='agricart-11da1')
 FIREBASE_SERVICE_ACCOUNT_PATH = config('FIREBASE_SERVICE_ACCOUNT_PATH', default='')
 FIREBASE_STORAGE_BUCKET = config('FIREBASE_STORAGE_BUCKET', default='agricart-11da1.firebasestorage.app')
 
-# MongoDB Configuration
+# MongoDB Configuration (primary database for all data)
 MONGODB_CONNECTION_STRING = config('MONGODB_CONNECTION_STRING', default='mongodb://localhost:27017')
-MONGODB_DATABASE_NAME = config('MONGODB_DATABASE_NAME', default='agricart_images')
+MONGODB_DATABASE_NAME = config('MONGODB_DATABASE_NAME', default='agricart_db')
+
+# Redis Configuration (for Django Channels)
+REDIS_URL = config('REDIS_URL', default='redis://localhost:6379/0')
+
+# Django Channels Configuration
+# Parse Redis URL (format: redis://host:port/db)
+redis_host = 'localhost'
+redis_port = 6379
+if REDIS_URL.startswith('redis://'):
+    redis_parts = REDIS_URL.replace('redis://', '').split('/')[0]
+    if ':' in redis_parts:
+        redis_host, redis_port = redis_parts.split(':')
+        redis_port = int(redis_port)
+    else:
+        redis_host = redis_parts
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [(redis_host, redis_port)],
+            "capacity": 1500,
+            "expiry": 10,
+        },
+    },
+}
 
 # PayMongo Configuration
 PAYMONGO_PUBLIC_KEY = config('PAYMONGO_PUBLIC_KEY', default='')
 PAYMONGO_SECRET_KEY = config('PAYMONGO_SECRET_KEY', default='')
 
 # Firebase Cloud Messaging
+# Note: FCM now uses V1 API with Service Account (no server key needed)
+# FCM_SERVER_KEY is kept for backward compatibility but not required
 FCM_SERVER_KEY = config('FCM_SERVER_KEY', default='')
 
 # Image Service
 IMAGE_SERVICE_URL = config('IMAGE_SERVICE_URL', default='http://localhost:8000/api/images')
+
+# JWT Configuration
+JWT_SECRET_KEY = config('JWT_SECRET_KEY', default=SECRET_KEY)
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_DAYS = 7

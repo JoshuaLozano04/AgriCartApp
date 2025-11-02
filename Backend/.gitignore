@@ -49,3 +49,10 @@ serviceAccountKey.json
 .DS_Store
 Thumbs.db
 
+# Media files (uploaded by users)
+media/uploads/*
+media/temp/*
+!media/.gitkeep
+!media/uploads/.gitkeep
+!media/temp/.gitkeep
+

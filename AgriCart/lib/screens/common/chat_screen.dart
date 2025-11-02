@@ -47,7 +47,6 @@ class _ChatScreenState extends State<ChatScreen> {
     return BlocProvider(
       create: (context) => ChatBloc(apiService: ApiService())
         ..add(LoadConversationEvent(
-          user1Id: widget.currentUserId,
           user2Id: widget.otherUserId,
         )),
       child: Scaffold(
@@ -79,7 +78,6 @@ class _ChatScreenState extends State<ChatScreen> {
                               onPressed: () {
                                 context.read<ChatBloc>().add(
                                       LoadConversationEvent(
-                                        user1Id: widget.currentUserId,
                                         user2Id: widget.otherUserId,
                                       ),
                                     );
@@ -179,7 +177,6 @@ class _ChatScreenState extends State<ChatScreen> {
                         if (_messageController.text.trim().isNotEmpty) {
                           context.read<ChatBloc>().add(
                                 SendMessageEvent(
-                                  senderId: widget.currentUserId,
                                   receiverId: widget.otherUserId,
                                   message: _messageController.text.trim(),
                                 ),

@@ -1,10 +1,10 @@
 # AgriCart Flutter App
 
-**AgriCart** - A mobile marketplace connecting farmers, buyers, suppliers, and traders for agricultural products in the Philippines. Browse, shop, and manage agricultural goods with ease using our Flutter-based application.
+**AgriCart** - A mobile marketplace connecting farmers, buyers, suppliers, and agribusinesses for agricultural products in the Philippines. Built with Flutter and featuring a beautiful green and white theme.
 
 ## About AgriCart
 
-AgriCart is a comprehensive agricultural marketplace platform that enables direct connections between agricultural producers and consumers. Users can browse products by category, location, and price; communicate with sellers via in-app chat; and complete purchases with multiple payment options including COD, GCash, Maya, and bank transfers.
+AgriCart is a comprehensive agricultural marketplace platform that enables direct connections between agricultural producers and consumers. Users can browse products by category, location, and price; communicate with sellers via **real-time chat** powered by WebSocket; and complete purchases with multiple payment options including COD, GCash, and bank transfers.
 
 ## Architecture
 
@@ -14,12 +14,14 @@ The app uses **BLoC (Business Logic Component)** pattern for state management, s
 
 ```
 lib/
+├── theme/             # App theme configuration
+│   └── app_theme.dart  # Green and white color scheme
 ├── bloc/              # Business logic components
 │   ├── auth/          # Authentication
 │   ├── products/      # Product browsing
 │   ├── cart/          # Shopping cart
 │   ├── orders/        # Order management
-│   ├── chat/          # Messaging
+│   ├── chat/          # Real-time messaging (WebSocket)
 │   └── seller/        # Seller dashboard
 ├── models/            # Data models
 │   ├── user.dart
@@ -29,13 +31,14 @@ lib/
 │   ├── message.dart
 │   └── review.dart
 ├── services/          # API and external services
-│   ├── api_service.dart
-│   └── notification_service.dart
+│   ├── api_service.dart        # REST API service
+│   ├── websocket_service.dart # WebSocket service for real-time chat
+│   └── notification_service.dart # Firebase push notifications
 ├── screens/           # UI screens
 │   ├── auth/          # Login, register
-│   ├── buyer/         # Product browsing, cart, checkout, orders
-│   ├── seller/        # Seller dashboard, product management
-│   └── common/        # Shared screens (chat)
+│   ├── buyer/         # Product browsing, cart, checkout, orders, reviews
+│   ├── seller/        # Seller dashboard, product management, analytics
+│   └── chat/          # Chat list and chat detail screens
 └── widgets/           # Reusable widgets
 ```
 
@@ -86,7 +89,7 @@ Create `.env` from `.env.example` and update as needed.
 ## Features
 
 ### Authentication
-- User registration with role selection (Buyer/Seller/Trader)
+- User registration with role selection (Buyer/Seller)
 - Login with email and password
 - User verification (ID upload, phone verification)
 
@@ -108,8 +111,10 @@ Create `.env` from `.env.example` and update as needed.
 - Chat with buyers
 
 ### Communication
-- In-app chat interface
-- Push notifications (Firebase Cloud Messaging)
+- **Real-time in-app chat** via WebSocket connection
+- Live message updates without page refresh
+- Chat list and conversation views
+- Push notifications (Firebase Cloud Messaging) for new messages and orders
 
 ## BLoC Pattern
 
@@ -138,22 +143,41 @@ BlocBuilder<ProductsBloc, ProductsState>(
 
 ## API Integration
 
-All API calls are made through `ApiService` class located in `lib/services/api_service.dart`.
+**REST API**: All API calls are made through `ApiService` class located in `lib/services/api_service.dart`.
 
-The base URL is configured via `.env` file:
+**WebSocket**: Real-time chat connections are handled by `WebSocketService` in `lib/services/websocket_service.dart`.
+
+Configuration via `.env` file:
 ```env
 API_BASE_URL=http://localhost:8000/api
+WS_URL=ws://localhost:8000/ws/chat
+```
+
+For Android emulator, use:
+```env
+API_BASE_URL=http://10.0.2.2:8000/api
+WS_URL=ws://10.0.2.2:8000/ws/chat
 ```
 
 ## Dependencies
 
 - `flutter_bloc` - State management
-- `http` - HTTP client
-- `firebase_core`, `firebase_auth`, `firebase_messaging` - Firebase services
+- `http` - HTTP client for REST API
+- `web_socket_channel` - WebSocket client for real-time chat
+- `firebase_core`, `firebase_messaging` - Firebase push notifications
 - `image_picker` - Image selection
 - `cached_network_image` - Image caching
 - `flutter_dotenv` - Environment variable management
 - `equatable` - Value equality
+- `url_launcher` - Launch phone calls to sellers
+
+## Theme
+
+The app uses a **green and white color scheme**:
+- Primary green: `#2E7D32` (or similar shade)
+- White background: `#FFFFFF`
+- Accent greens for highlights and buttons
+- Consistent green/white styling throughout all screens
 
 ## State Management
 

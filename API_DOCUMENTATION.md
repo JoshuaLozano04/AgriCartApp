@@ -1,10 +1,18 @@
 # AgriCart API Documentation
 
-Complete REST API endpoint reference with request/response examples.
+Complete REST API and WebSocket endpoint reference with request/response examples.
 
-## Base URL
+## Base URLs
+
+**REST API**: `http://localhost:8000/api`
+
+**WebSocket**: `ws://localhost:8000/ws/chat/`
+
+## Authentication
+
+All REST API endpoints (except registration and login) require JWT authentication via `Authorization` header:
 ```
-http://localhost:8000/api
+Authorization: Bearer <jwt_token>
 ```
 
 ## Authentication
@@ -187,28 +195,125 @@ Request:
 }
 ```
 
-Payment methods: `cod`, `gcash`, `maya`, `bank_transfer`
+Payment methods: `cod`, `gcash`, `bank_transfer`
 
 ## Chat
 
-### Send Message
-**POST** `/messages/send/`
+### WebSocket Real-time Chat
+**WebSocket** `ws://localhost:8000/ws/chat/<conversation_id>/`
+
+Connect to this endpoint for real-time bidirectional messaging.
+
+**Connection**: 
+- Requires JWT token in query parameter: `?token=<jwt_token>`
+- Connection URL format: `ws://localhost:8000/ws/chat/<conversation_id>/?token=<jwt_token>`
+
+**Send Message** (via WebSocket):
+```json
+{
+  "type": "chat_message",
+  "message": "Hello, is this available?",
+  "sender_id": "uuid",
+  "receiver_id": "uuid"
+}
+```
+
+**Receive Message** (via WebSocket):
+```json
+{
+  "type": "chat_message",
+  "message": "Yes, it's available!",
+  "sender_id": "uuid",
+  "receiver_id": "uuid",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+### REST API Endpoints (Fallback/Sync)
+
+**Create or Get Conversation**
+**POST** `/api/messages/conversation/create/`
 
 Request:
 ```json
 {
+  "user1_id": "uuid",
+  "user2_id": "uuid"
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "conversation_id": "conv-uuid",
+  "conversation": {...}
+}
+```
+
+**Get User Conversations**
+**GET** `/api/messages/conversations/`
+
+Query parameters:
+- `user_id`: user ID
+
+Response:
+```json
+{
+  "success": true,
+  "conversations": [
+    {
+      "conversation_id": "uuid",
+      "other_user": {...},
+      "last_message": {...},
+      "unread_count": 2
+    }
+  ]
+}
+```
+
+**Get Conversation History**
+**GET** `/api/messages/conversation/<conversation_id>/`
+
+Response:
+```json
+{
+  "success": true,
+  "messages": [
+    {
+      "message_id": "uuid",
+      "sender_id": "uuid",
+      "receiver_id": "uuid",
+      "message": "Hello!",
+      "timestamp": "2024-01-15T10:30:00Z",
+      "is_read": true
+    }
+  ]
+}
+```
+
+**Send Message** (REST fallback)
+**POST** `/api/messages/send/`
+
+Request:
+```json
+{
+  "conversation_id": "uuid",
   "sender_id": "uuid",
   "receiver_id": "uuid",
   "message": "Hello, is this available?"
 }
 ```
 
-### Get Conversation
-**GET** `/messages/conversation/`
+**Mark Messages as Read**
+**PUT** `/api/messages/conversation/<conversation_id>/mark-read/`
 
-Query parameters:
-- `user1_id`: first user ID
-- `user2_id`: second user ID
+Request:
+```json
+{
+  "user_id": "uuid"
+}
+```
 
 ## Analytics
 
@@ -216,7 +321,9 @@ Query parameters:
 **GET** `/analytics/sales/`
 
 Query parameters:
-- `seller_id`: seller user ID
+- `seller_id`: seller user ID (required)
+- `start_date`: Start date for analytics (optional, ISO format)
+- `end_date`: End date for analytics (optional, ISO format)
 
 Response:
 ```json
@@ -225,8 +332,22 @@ Response:
   "analytics": {
     "total_revenue": 50000.00,
     "total_orders": 150,
+    "pending_orders": 5,
+    "completed_orders": 140,
+    "revenue_trends": [
+      {"date": "2024-01-01", "revenue": 1200.00},
+      {"date": "2024-01-02", "revenue": 1500.00}
+    ],
     "top_products": [
-      {"product_id": "uuid", "quantity_sold": 100}
+      {
+        "product_id": "uuid",
+        "product_name": "Fresh Tomatoes",
+        "quantity_sold": 100,
+        "revenue": 15000.00
+      }
+    ],
+    "categories_performance": [
+      {"category": "fresh_produce", "revenue": 30000.00, "orders": 80}
     ]
   }
 }
@@ -246,8 +367,18 @@ HTTP Status Codes:
 - 200: Success
 - 201: Created
 - 400: Bad Request
-- 401: Unauthorized
+- 401: Unauthorized (missing or invalid JWT token)
 - 403: Forbidden
 - 404: Not Found
 - 500: Internal Server Error
+
+## WebSocket Status Codes
+
+WebSocket connections may close with these codes:
+- 1000: Normal closure
+- 1001: Going away (server restart)
+- 1008: Policy violation (invalid token)
+- 4000: Custom - Authentication failed
+- 4001: Custom - Conversation not found
+- 4002: Custom - User not authorized for this conversation
 

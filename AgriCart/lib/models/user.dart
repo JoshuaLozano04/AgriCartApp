@@ -3,7 +3,7 @@ class User {
   final String email;
   final String fullName;
   final String phoneNumber;
-  final String role; // 'buyer', 'seller', 'trader'
+  final String role; // 'buyer', 'seller'
   final String? address;
   final bool isVerified;
   final Map<String, dynamic>? verificationStatus;

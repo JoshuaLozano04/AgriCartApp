@@ -234,7 +234,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               quantity: int.parse(_quantityController.text),
                               unit: _selectedUnit,
                               location: _locationController.text.trim(),
-                              imageIds: [],
+                              imagePaths: [],
                               isActive: true,
                             );
 

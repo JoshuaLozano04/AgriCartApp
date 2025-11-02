@@ -7,7 +7,7 @@ from rest_framework import serializers
 class ProductSerializer(serializers.Serializer):
     """Serializer for product."""
     product_id = serializers.CharField(required=False)
-    seller_id = serializers.CharField()
+    # seller_id comes from authenticated user token
     name = serializers.CharField(max_length=255)
     description = serializers.CharField()
     category = serializers.ChoiceField(choices=[
@@ -20,7 +20,7 @@ class ProductSerializer(serializers.Serializer):
     location = serializers.CharField(max_length=255)
     latitude = serializers.FloatField(required=False)
     longitude = serializers.FloatField(required=False)
-    image_ids = serializers.ListField(
+    image_paths = serializers.ListField(
         child=serializers.CharField(),
         required=False,
         allow_empty=True

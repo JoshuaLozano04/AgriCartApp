@@ -10,7 +10,7 @@ class UserRegistrationSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, min_length=8)
     full_name = serializers.CharField(max_length=255)
     phone_number = serializers.CharField(max_length=20)
-    role = serializers.ChoiceField(choices=['buyer', 'seller', 'trader'])
+    role = serializers.ChoiceField(choices=['buyer', 'seller'])
     address = serializers.CharField(required=False, allow_blank=True)
 
 
@@ -22,7 +22,7 @@ class UserLoginSerializer(serializers.Serializer):
 
 class UserVerificationSerializer(serializers.Serializer):
     """Serializer for user verification."""
-    user_id = serializers.CharField()
+    # user_id comes from authenticated user token
     verification_type = serializers.ChoiceField(choices=['id', 'phone'])
     verification_data = serializers.CharField()  # ID image or phone verification code
 

@@ -14,12 +14,9 @@ class AnalyticsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => SellerBloc(apiService: ApiService())
-        ..add(LoadSalesAnalyticsEvent(sellerId: sellerId)),
+        ..add(const LoadSalesAnalyticsEvent()),
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Sales Analytics'),
-          backgroundColor: Colors.green,
-        ),
+        // AppBar removed - will be handled by parent SellerMainScreen
         body: BlocBuilder<SellerBloc, SellerState>(
           builder: (context, state) {
             if (state is SellerLoading) {
@@ -33,7 +30,7 @@ class AnalyticsScreen extends StatelessWidget {
                     ElevatedButton(
                       onPressed: () {
                         context.read<SellerBloc>().add(
-                              LoadSalesAnalyticsEvent(sellerId: sellerId),
+                              const LoadSalesAnalyticsEvent(),
                             );
                       },
                       child: const Text('Retry'),

@@ -1,20 +1,98 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import '../models/user.dart';
 import '../models/product.dart';
 import '../models/order.dart';
 import '../models/message.dart';
+import 'token_storage_service.dart';
 
 class ApiService {
-  static String get baseUrl => dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000/api';
-  static String get imageServiceUrl => dotenv.env['IMAGE_SERVICE_URL'] ?? 'http://localhost:8000/api/images';
+  final TokenStorageService _tokenStorage = TokenStorageService();
+  
+  static String get baseUrl {
+    try {
+      final envUrl = dotenv.env['API_BASE_URL'];
+      if (envUrl != null && envUrl.isNotEmpty) {
+        debugPrint('API Service: Using API_BASE_URL from .env: $envUrl');
+        return envUrl;
+      } else {
+        debugPrint('API Service: API_BASE_URL not found in .env or is empty');
+      }
+    } catch (e) {
+      // dotenv not initialized - will use default below
+      debugPrint('API Service: dotenv not initialized, error: $e');
+    }
+    
+    // Default URL based on platform
+    if (kIsWeb) {
+      return 'http://localhost:8000/api';
+    } else {
+      try {
+        if (Platform.isAndroid) {
+          // For Android emulator: 10.0.2.2 maps to host machine's localhost
+          // For physical device: replace with your computer's IP address on the same network
+          // Example: 'http://192.168.1.100:8000/api' (use your actual IP)
+          return 'http://10.0.2.2:8000/api';
+        } else if (Platform.isIOS) {
+          // For iOS simulator: use localhost
+          // For physical iOS device: use your computer's IP address
+          return 'http://localhost:8000/api';
+        }
+      } catch (e) {
+        // Platform class not available (e.g., on web) - use localhost
+      }
+      return 'http://localhost:8000/api';
+    }
+  }
+  
+  static String get imageServiceUrl {
+    try {
+      final envUrl = dotenv.env['IMAGE_SERVICE_URL'];
+      if (envUrl != null && envUrl.isNotEmpty) {
+        return envUrl;
+      }
+    } catch (e) {
+      // dotenv not initialized - will use default below
+    }
+    
+    // Default to baseUrl + /images
+    return '${baseUrl.replaceAll('/api', '')}/api/images';
+  }
+  
+  /// Get headers with authentication token if available
+  Future<Map<String, String>> _getAuthHeaders({Map<String, String>? additionalHeaders}) async {
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      ...?additionalHeaders,
+    };
+    
+    final token = await _tokenStorage.getToken();
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    
+    return headers;
+  }
   
   Future<Map<String, dynamic>> _handleResponse(http.Response response) async {
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return json.decode(response.body);
+      try {
+        return json.decode(response.body);
+      } catch (e) {
+        throw Exception('Invalid JSON response: ${response.body}');
+      }
     } else {
-      throw Exception('Request failed: ${response.statusCode}');
+      // Try to parse error response
+      try {
+        final errorBody = json.decode(response.body);
+        throw Exception('Request failed: ${response.statusCode} - ${errorBody['message'] ?? response.body}');
+      } catch (e) {
+        throw Exception('Request failed: ${response.statusCode} - ${response.body}');
+      }
     }
   }
 
@@ -36,18 +114,47 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> login(String email, String password) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/login/'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'email': email, 'password': password}),
-    );
-    return _handleResponse(response);
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login/'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email, 'password': password}),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw TimeoutException('Connection to server timed out. Please check:\n'
+              '1. Django server is running\n'
+              '2. Correct IP address in .env (API_BASE_URL)\n'
+              '3. Device and computer are on the same network\n'
+              '4. Firewall is not blocking port 8000');
+        },
+      );
+      return _handleResponse(response);
+    } on SocketException catch (e) {
+      throw Exception('Cannot connect to server at $baseUrl\n'
+          'Error: ${e.message}\n'
+          'Please verify:\n'
+          '- Server is running: python manage.py runserver 0.0.0.0:8000\n'
+          '- Correct IP in .env file\n'
+          '- Same Wi-Fi network');
+    } on TimeoutException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception('Login failed: $e');
+    }
   }
 
-  Future<Map<String, dynamic>> getUserProfile(String userId) async {
+  Future<Map<String, dynamic>> getUserProfile() async {
+    final headers = await _getAuthHeaders();
+    final token = await _tokenStorage.getToken();
+    print('DEBUG: Token retrieved: ${token != null ? "Token exists (${token.length} chars)" : "No token"}');
+    print('DEBUG: Authorization header: ${headers['Authorization'] ?? "Not set"}');
     final response = await http.get(
-      Uri.parse('$baseUrl/users/$userId/'),
+      Uri.parse('$baseUrl/users/profile/'),
+      headers: headers,
     );
+    print('DEBUG: Response status: ${response.statusCode}');
+    print('DEBUG: Response body: ${response.body}');
     return _handleResponse(response);
   }
 
@@ -97,11 +204,12 @@ class ApiService {
 
   // Order endpoints
   Future<Map<String, dynamic>> createOrder(Order order) async {
+    final headers = await _getAuthHeaders();
     final response = await http.post(
       Uri.parse('$baseUrl/orders/create/'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: json.encode({
-        'buyer_id': order.buyerId,
+        // buyer_id comes from token, not from order
         'seller_id': order.sellerId,
         'items': order.items.map((item) => item.toJson()).toList(),
         'shipping_address': order.shippingAddress,
@@ -112,12 +220,11 @@ class ApiService {
     return _handleResponse(response);
   }
 
-  Future<List<Order>> getOrders(String userId, String role) async {
+  Future<List<Order>> getOrders() async {
+    final headers = await _getAuthHeaders();
     final response = await http.get(
-      Uri.parse('$baseUrl/orders/').replace(queryParameters: {
-        'user_id': userId,
-        'role': role,
-      }),
+      Uri.parse('$baseUrl/orders/'),
+      headers: headers,
     );
     final data = await _handleResponse(response);
     if (data['success'] == true) {
@@ -129,27 +236,73 @@ class ApiService {
   }
 
   Future<Order?> getOrder(String orderId) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/orders/$orderId/'),
-    );
-    final data = await _handleResponse(response);
-    if (data['success'] == true) {
-      return Order.fromJson(data['order']);
+    debugPrint('DEBUG ApiService.getOrder: Fetching order $orderId');
+    try {
+      final headers = await _getAuthHeaders();
+      debugPrint('DEBUG ApiService.getOrder: Headers prepared, token: ${headers.containsKey('Authorization') ? "present" : "missing"}');
+      debugPrint('DEBUG ApiService.getOrder: Request URL: $baseUrl/orders/$orderId/');
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/orders/$orderId/'),
+        headers: headers,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          debugPrint('DEBUG ApiService.getOrder: Request timed out');
+          throw TimeoutException('Connection to server timed out. Please check your network connection.');
+        },
+      );
+      
+      debugPrint('DEBUG ApiService.getOrder: Response status: ${response.statusCode}');
+      debugPrint('DEBUG ApiService.getOrder: Response body length: ${response.body.length}');
+      
+      final data = await _handleResponse(response);
+      debugPrint('DEBUG ApiService.getOrder: Parsed response, success: ${data['success']}');
+      
+      if (data['success'] == true) {
+        final order = Order.fromJson(data['order']);
+        debugPrint('DEBUG ApiService.getOrder: Order parsed successfully, orderId: ${order.orderId}');
+        return order;
+      }
+      debugPrint('DEBUG ApiService.getOrder: Response success is false');
+      return null;
+    } on SocketException catch (e) {
+      debugPrint('DEBUG ApiService.getOrder: SocketException: ${e.message}');
+      throw Exception('Cannot connect to server\nError: ${e.message}');
+    } on TimeoutException catch (e) {
+      debugPrint('DEBUG ApiService.getOrder: TimeoutException: ${e.message}');
+      throw Exception(e.message);
+    } catch (e, stackTrace) {
+      debugPrint('DEBUG ApiService.getOrder: Exception: $e');
+      debugPrint('DEBUG ApiService.getOrder: Stack trace: $stackTrace');
+      throw Exception('Failed to load order: $e');
     }
-    return null;
+  }
+
+  Future<Map<String, dynamic>> updateOrderStatus(
+    String orderId,
+    String status,
+  ) async {
+    final headers = await _getAuthHeaders();
+    final response = await http.patch(
+      Uri.parse('$baseUrl/orders/$orderId/update/'),
+      headers: headers,
+      body: json.encode({'status': status}),
+    );
+    return _handleResponse(response);
   }
 
   // Chat endpoints
   Future<Map<String, dynamic>> sendMessage(
-    String senderId,
     String receiverId,
     String message,
   ) async {
+    final headers = await _getAuthHeaders();
     final response = await http.post(
       Uri.parse('$baseUrl/messages/send/'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: json.encode({
-        'sender_id': senderId,
+        // sender_id comes from token
         'receiver_id': receiverId,
         'message': message,
       }),
@@ -157,12 +310,14 @@ class ApiService {
     return _handleResponse(response);
   }
 
-  Future<List<Message>> getConversation(String user1Id, String user2Id) async {
+  Future<List<Message>> getConversation(String user2Id) async {
+    final headers = await _getAuthHeaders();
     final response = await http.get(
       Uri.parse('$baseUrl/messages/conversation/').replace(queryParameters: {
-        'user1_id': user1Id,
+        // user1_id comes from token
         'user2_id': user2Id,
       }),
+      headers: headers,
     );
     final data = await _handleResponse(response);
     if (data['success'] == true) {
@@ -179,9 +334,10 @@ class ApiService {
     required double amount,
     required String paymentMethod,
   }) async {
+    final headers = await _getAuthHeaders();
     final response = await http.post(
       Uri.parse('$baseUrl/payments/create/'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: json.encode({
         'order_id': orderId,
         'amount': amount,
@@ -191,12 +347,35 @@ class ApiService {
     return _handleResponse(response);
   }
 
-  // Analytics endpoints
-  Future<Map<String, dynamic>> getSalesAnalytics(String sellerId) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/analytics/sales/').replace(queryParameters: {
-        'seller_id': sellerId,
+  Future<Map<String, dynamic>> confirmPayment({
+    required String paymentIntentId,
+  }) async {
+    final headers = await _getAuthHeaders();
+    final response = await http.post(
+      Uri.parse('$baseUrl/payments/confirm/'),
+      headers: headers,
+      body: json.encode({
+        'payment_intent_id': paymentIntentId,
       }),
+    );
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> getPayment(String orderId) async {
+    final headers = await _getAuthHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/payments/order/$orderId/'),
+      headers: headers,
+    );
+    return _handleResponse(response);
+  }
+
+  // Analytics endpoints
+  Future<Map<String, dynamic>> getSalesAnalytics() async {
+    final headers = await _getAuthHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/analytics/sales/'),
+      headers: headers,
     );
     return _handleResponse(response);
   }

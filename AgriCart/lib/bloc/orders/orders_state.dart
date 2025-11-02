@@ -48,3 +48,16 @@ class OrdersError extends OrdersState {
   List<Object?> get props => [message];
 }
 
+class PaymentCreated extends OrdersState {
+  final String? paymentUrl;
+  final String paymentMethod;
+
+  const PaymentCreated({
+    this.paymentUrl,
+    required this.paymentMethod,
+  });
+
+  @override
+  List<Object?> get props => [paymentUrl, paymentMethod];
+}
+

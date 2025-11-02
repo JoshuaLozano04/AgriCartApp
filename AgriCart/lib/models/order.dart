@@ -9,6 +9,8 @@ class OrderItem {
     required this.price,
   });
 
+  double get total => price * quantity;
+
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
       productId: json['product_id'] ?? '',
@@ -35,6 +37,7 @@ class Order {
   final String paymentMethod;
   final double totalAmount;
   final String status;
+  final String? paymentStatus;
   final String? trackingNumber;
   final String? createdAt;
   final String? updatedAt;
@@ -48,6 +51,7 @@ class Order {
     required this.paymentMethod,
     required this.totalAmount,
     required this.status,
+    this.paymentStatus,
     this.trackingNumber,
     this.createdAt,
     this.updatedAt,
@@ -63,6 +67,7 @@ class Order {
       paymentMethod: json['payment_method'] ?? 'cod',
       totalAmount: (json['total_amount'] ?? 0).toDouble(),
       status: json['status'] ?? 'pending',
+      paymentStatus: json['payment_status'],
       trackingNumber: json['tracking_number'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
@@ -79,6 +84,7 @@ class Order {
       'payment_method': paymentMethod,
       'total_amount': totalAmount,
       'status': status,
+      'payment_status': paymentStatus,
       'tracking_number': trackingNumber,
       'created_at': createdAt,
       'updated_at': updatedAt,

@@ -18,8 +18,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ) async {
     emit(ChatLoading());
     try {
+      // user1Id comes from token, only need user2Id
       final messages = await apiService.getConversation(
-        event.user1Id,
         event.user2Id,
       );
       emit(ChatLoaded(messages: messages));
@@ -33,8 +33,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     Emitter<ChatState> emit,
   ) async {
     try {
+      // senderId comes from token, only need receiverId
       final response = await apiService.sendMessage(
-        event.senderId,
         event.receiverId,
         event.message,
       );
@@ -42,7 +42,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         emit(MessageSent(messageId: response['message_id']));
         // Reload conversation after sending
         add(LoadConversationEvent(
-          user1Id: event.senderId,
           user2Id: event.receiverId,
         ));
       } else {
@@ -59,8 +58,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ) async {
     emit(ChatLoading());
     try {
+      // user1Id comes from token, only need user2Id
       final messages = await apiService.getConversation(
-        event.user1Id,
         event.user2Id,
       );
       emit(ChatLoaded(messages: messages));
