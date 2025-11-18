@@ -68,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Container(
                       width: 100,
                       height: 100,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: AppTheme.primaryGreen,
                         shape: BoxShape.circle,
                       ),
@@ -89,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Agricultural Marketplace',
+                      'Where Farming Meets Opportunity',
                       style: AppTheme.bodyMedium.copyWith(
                         color: AppTheme.textGray,
                       ),
@@ -164,7 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
+                        const Text(
                           'Don\'t have an account? ',
                           style: AppTheme.bodyMedium,
                         ),
@@ -187,13 +187,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin() {
-    if (_formKey.currentState!.validate()) {
+    // Navigate immediately to the dashboard so the app is usable without backend
+    // This is a development fallback. We still try to authenticate if the form is valid.
+    AppRouter.navigateToSellerHome(context);
+
+    if (_formKey.currentState?.validate() ?? false) {
       context.read<AuthBloc>().add(
-            LoginEvent(
-              email: _emailController.text.trim().toLowerCase(),
-              password: _passwordController.text,
-            ),
-          );
+        LoginEvent(
+          email: _emailController.text.trim().toLowerCase(),
+          password: _passwordController.text,
+        ),
+      );
     }
   }
 }
