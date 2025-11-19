@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: agricart-backend
+    env: python
+    region: singapore
+    buildCommand: "./build.sh"
+    startCommand: "daphne -b 0.0.0.0 -p $PORT agricart_api.asgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: MONGODB_CONNECTION_STRING
+        sync: false
+      - key: MONGODB_DATABASE_NAME
+        value: agricart_db
+      - key: REDIS_URL
+        sync: false
+      - key: REDIS_TOKEN
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        value: agricart-11da1
+      - key: FIREBASE_SERVICE_ACCOUNT_PATH
+        value: /etc/secrets/serviceAccountKey.json
+      - key: FIREBASE_STORAGE_BUCKET
+        value: agricart-11da1.firebasestorage.app
+      - key: PAYMONGO_PUBLIC_KEY
+        sync: false
+      - key: PAYMONGO_SECRET_KEY
+        sync: false
+      - key: CSRF_COOKIE_SECURE
+        value: True
+      - key: IMAGE_SERVICE_URL
+        sync: false

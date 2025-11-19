@@ -53,6 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -132,6 +133,9 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Whitenoise configuration for static files
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Media files (User uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -200,29 +204,50 @@ MONGODB_DATABASE_NAME = config('MONGODB_DATABASE_NAME', default='agricart_db')
 
 # Redis Configuration (for Django Channels)
 REDIS_URL = config('REDIS_URL', default='redis://localhost:6379/0')
+REDIS_TOKEN = config('REDIS_TOKEN', default='')
 
 # Django Channels Configuration
-# Parse Redis URL (format: redis://host:port/db)
-redis_host = 'localhost'
-redis_port = 6379
-if REDIS_URL.startswith('redis://'):
-    redis_parts = REDIS_URL.replace('redis://', '').split('/')[0]
-    if ':' in redis_parts:
-        redis_host, redis_port = redis_parts.split(':')
-        redis_port = int(redis_port)
-    else:
-        redis_host = redis_parts
-
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [(redis_host, redis_port)],
-            "capacity": 1500,
-            "expiry": 10,
+# Support both standard Redis (redis://) and Upstash Redis (https://)
+if REDIS_URL.startswith('https://') and REDIS_TOKEN:
+    # Upstash Redis with REST API
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [{
+                    'address': REDIS_URL.replace('https://', 'rediss://') + ':6379',
+                    'password': REDIS_TOKEN,
+                    'db': 0,
+                }],
+                "capacity": 1500,
+                "expiry": 10,
+            },
         },
-    },
-}
+    }
+elif REDIS_URL.startswith('rediss://') or REDIS_URL.startswith('redis://'):
+    # Standard Redis URL format (rediss:// or redis://)
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [REDIS_URL],
+                "capacity": 1500,
+                "expiry": 10,
+            },
+        },
+    }
+else:
+    # Fallback to localhost
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [('localhost', 6379)],
+                "capacity": 1500,
+                "expiry": 10,
+            },
+        },
+    }
 
 # PayMongo Configuration
 PAYMONGO_PUBLIC_KEY = config('PAYMONGO_PUBLIC_KEY', default='')
