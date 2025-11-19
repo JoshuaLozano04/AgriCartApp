@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from utils.mongodb_service import MongoDBService
+from utils.notification_service import NotificationService
 from .serializers import ProductSerializer, ProductListSerializer
 import uuid
 import os
@@ -300,19 +301,77 @@ def update_product(request, product_id):
     
     # Handle multipart form data - parse JSON strings if needed
     serializer_data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
-    
-    # If image_paths is a JSON string, parse it
+
+    # Keep only fields the serializer understands; drop unknowns like 'images', 'seller_id', etc.
+    allowed_fields = {
+        'name', 'description', 'category', 'price', 'quantity',
+        'unit', 'location', 'latitude', 'longitude', 'image_paths'
+    }
+    keys_to_drop = [k for k in list(serializer_data.keys()) if k not in allowed_fields]
+    for k in keys_to_drop:
+        serializer_data.pop(k, None)
+
+    # Extract optional image_paths separately so validation does not fail on list items
+    provided_image_paths = None
     if 'image_paths' in serializer_data:
-        image_paths_value = serializer_data['image_paths']
-        if isinstance(image_paths_value, str):
-            try:
+        image_paths_value = serializer_data.get('image_paths')
+        try:
+            if isinstance(image_paths_value, list):
+                # Accept only if all elements are strings
+                if all(isinstance(x, str) for x in image_paths_value):
+                    provided_image_paths = image_paths_value
+            elif image_paths_value in (None, '', 'null'):
+                provided_image_paths = []
+            elif isinstance(image_paths_value, str):
                 import json as json_lib
-                serializer_data['image_paths'] = json_lib.loads(image_paths_value)
-            except (ValueError, TypeError):
-                # Not valid JSON, keep as is
-                pass
+                parsed = json_lib.loads(image_paths_value)
+                if isinstance(parsed, list) and all(isinstance(x, str) for x in parsed):
+                    provided_image_paths = parsed
+        except Exception:
+            # Ignore invalid formats; we'll treat as not provided
+            provided_image_paths = None
+        # Remove from serializer input to avoid validation errors
+        serializer_data.pop('image_paths', None)
     
-    serializer = ProductSerializer(data=serializer_data)
+    # Convert numeric fields from strings (multipart form sends everything as strings)
+    if 'price' in serializer_data:
+        try:
+            serializer_data['price'] = float(serializer_data['price'])
+        except (ValueError, TypeError):
+            # Remove invalid/empty values so partial update can proceed
+            if not serializer_data['price']:
+                serializer_data.pop('price', None)
+    
+    if 'quantity' in serializer_data:
+        try:
+            serializer_data['quantity'] = int(float(serializer_data['quantity']))
+        except (ValueError, TypeError):
+            if not serializer_data['quantity']:
+                serializer_data.pop('quantity', None)
+    
+    # Convert latitude and longitude if present
+    if 'latitude' in serializer_data and serializer_data['latitude']:
+        try:
+            serializer_data['latitude'] = float(serializer_data['latitude'])
+        except (ValueError, TypeError):
+            serializer_data.pop('latitude', None)
+    
+    if 'longitude' in serializer_data and serializer_data['longitude']:
+        try:
+            serializer_data['longitude'] = float(serializer_data['longitude'])
+        except (ValueError, TypeError):
+            serializer_data.pop('longitude', None)
+    
+    # image_paths handled separately above; ensure it's not present for validation
+    serializer_data.pop('image_paths', None)
+
+    # Drop empty string values for text fields to allow true partial updates
+    for key in ['name', 'description', 'category', 'unit', 'location']:
+        if key in serializer_data and (serializer_data[key] is None or str(serializer_data[key]).strip() == ''):
+            serializer_data.pop(key, None)
+    
+    # Allow partial updates by passing partial=True to the constructor
+    serializer = ProductSerializer(data=serializer_data, partial=True)
     if serializer.is_valid():
         data = serializer.validated_data
         
@@ -377,9 +436,9 @@ def update_product(request, product_id):
         # 1. If image_paths is in data, use it as base (user may have removed some existing images)
         # 2. Add any new images uploaded
         # 3. If no image_paths in data and no new images, keep existing
-        if 'image_paths' in data and isinstance(data['image_paths'], list):
+        if provided_image_paths is not None:
             # Use provided image_paths as base (may have removed some)
-            base_image_paths = data['image_paths']
+            base_image_paths = provided_image_paths
             # Merge with new images if any
             if new_image_paths:
                 final_image_paths = base_image_paths + new_image_paths
@@ -409,6 +468,19 @@ def update_product(request, product_id):
         try:
             success = MongoDBService.update_document('products', product_id, update_data)
             if success:
+                # If quantity is set to 5, notify seller (low stock)
+                try:
+                    if 'quantity' in update_data and isinstance(update_data['quantity'], int) and update_data['quantity'] == 5:
+                        NotificationService().create_notification(
+                            user_id=request.user.user_id,
+                            notification_type='low_stock',
+                            title='Low Stock Alert',
+                            body=f"{product_data.get('name', 'Product')} stock is down to 5",
+                            data={'product_id': product_id, 'qty': '5'}
+                        )
+                        NotificationService().send_unread_for_user(request.user.user_id)
+                except Exception:
+                    pass
                 return Response({
                     'success': True,
                     'message': 'Product updated successfully'
@@ -424,6 +496,11 @@ def update_product(request, product_id):
                 'message': f'Update failed: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+    # Debug log serializer errors to help diagnose 400s
+    try:
+        print(f"DEBUG update_product: Serializer errors: {serializer.errors}")
+    except Exception:
+        pass
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

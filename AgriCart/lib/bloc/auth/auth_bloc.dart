@@ -28,10 +28,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         // Load user profile after registration
         add(LoadUserProfileEvent(userId: response['user_id']));
       } else {
-        emit(AuthError(message: response['message'] ?? 'Registration failed'));
+        emit(AuthError(message: response['message'] ?? 'Registration failed. Please try again.'));
       }
     } catch (e) {
-      emit(AuthError(message: 'Registration error: $e'));
+      emit(AuthError(message: 'Something went wrong. Please try again.'));
     }
   }
 
@@ -56,10 +56,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         );
         emit(AuthAuthenticated(user: user));
       } else {
-        emit(AuthError(message: response['message'] ?? 'Login failed'));
+        emit(AuthError(message: response['message'] ?? 'Wrong email or password'));
       }
     } catch (e) {
-      emit(AuthError(message: 'Login error: $e'));
+      emit(AuthError(message: 'Wrong email or password'));
     }
   }
 

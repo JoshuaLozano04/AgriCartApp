@@ -8,6 +8,8 @@ from rest_framework import status
 from django.conf import settings
 from utils.mongodb_service import MongoDBService
 from utils.jwt_auth import generate_token
+from utils.fcm_service import FCMService
+from utils.notification_service import NotificationService
 from .serializers import (
     UserRegistrationSerializer,
     UserLoginSerializer,
@@ -31,7 +33,7 @@ def register(request):
         if not MongoDBService.validate_email(email):
             return Response({
                 'success': False,
-                'message': 'Invalid email format'
+                'message': 'Please enter a valid email address'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Validate phone number
@@ -95,10 +97,44 @@ def register(request):
         except Exception as e:
             return Response({
                 'success': False,
-                'message': f'Registration failed: {str(e)}'
+                'message': 'Something went wrong. Please try again.'
             }, status=status.HTTP_400_BAD_REQUEST)
     
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # Format serializer errors to be user-friendly
+    error_messages = []
+    for field, errors in serializer.errors.items():
+        if isinstance(errors, list):
+            for error in errors:
+                if 'email' in field.lower() and 'valid' in str(error).lower():
+                    error_messages.append('Please enter a valid email address')
+                elif 'password' in field.lower():
+                    if 'required' in str(error).lower():
+                        error_messages.append('Password is required')
+                    elif 'minimum' in str(error).lower() or 'min_length' in str(error):
+                        error_messages.append('Password must be at least 8 characters')
+                    else:
+                        error_messages.append('Please check your password')
+                elif 'role' in field.lower():
+                    error_messages.append('Please select buyer or seller')
+                elif 'required' in str(error).lower():
+                    field_name = field.replace('_', ' ').title()
+                    error_messages.append(f'{field_name} is required')
+                else:
+                    error_messages.append(str(error))
+        else:
+            error_messages.append(str(errors))
+    
+    # Return user-friendly error message
+    if error_messages:
+        return Response({
+            'success': False,
+            'message': error_messages[0] if len(error_messages) == 1 else 'Please check your input and try again.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        return Response({
+            'success': False,
+            'message': 'Please check your input and try again.'
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -144,20 +180,50 @@ def login(request):
                 else:
                     return Response({
                         'success': False,
-                        'message': 'Invalid credentials'
+                        'message': 'Wrong email or password'
                     }, status=status.HTTP_401_UNAUTHORIZED)
             else:
                 return Response({
                     'success': False,
-                    'message': 'User not found'
+                    'message': 'Wrong email or password'
                 }, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({
                 'success': False,
-                'message': f'Login failed: {str(e)}'
+                'message': 'Something went wrong. Please try again.'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # Format serializer errors to be user-friendly
+    error_messages = []
+    for field, errors in serializer.errors.items():
+        if isinstance(errors, list):
+            for error in errors:
+                if 'email' in field.lower() and 'valid' in str(error).lower():
+                    error_messages.append('Please enter a valid email address')
+                elif 'password' in field.lower():
+                    if 'required' in str(error).lower():
+                        error_messages.append('Password is required')
+                    else:
+                        error_messages.append('Please check your password')
+                elif 'required' in str(error).lower():
+                    field_name = field.replace('_', ' ').title()
+                    error_messages.append(f'{field_name} is required')
+                else:
+                    error_messages.append(str(error))
+        else:
+            error_messages.append(str(errors))
+    
+    # If we have specific errors, use them; otherwise generic message
+    if error_messages:
+        return Response({
+            'success': False,
+            'message': error_messages[0] if len(error_messages) == 1 else 'Wrong email or password'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        return Response({
+            'success': False,
+            'message': 'Wrong email or password'
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
@@ -307,3 +373,114 @@ def update_profile(request):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def register_fcm_token(request):
+    """Register or update the current user's FCM device token.
+
+    Request body: { "token": "<fcm_device_token>" }
+    Adds token to user's `fcm_tokens` array if not present.
+    """
+    # Authentication required
+    if not hasattr(request, 'user') or not request.user or not hasattr(request.user, 'user_id'):
+        return Response({
+            'success': False,
+            'message': 'Authentication required'
+        }, status=status.HTTP_401_UNAUTHORIZED)
+
+    user_id = request.user.user_id
+    token = (request.data.get('token') or '').strip()
+    if not token:
+        return Response({
+            'success': False,
+            'message': 'token is required'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = MongoDBService.get_document('users', user_id)
+        if not user:
+            return Response({
+                'success': False,
+                'message': 'User not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        existing_tokens = user.get('fcm_tokens', []) or []
+        if token in existing_tokens:
+            return Response({
+                'success': True,
+                'message': 'Token already registered'
+            }, status=status.HTTP_200_OK)
+
+        updated_tokens = existing_tokens + [token]
+        MongoDBService.update_document('users', user_id, {
+            'fcm_tokens': updated_tokens,
+            'updated_at': 'SERVER_TIMESTAMP'
+        })
+
+        return Response({
+            'success': True,
+            'message': 'Token registered'
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Failed to register token: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def list_notifications(request):
+    """List current user's notifications. Optional query: unread=true"""
+    if not hasattr(request, 'user') or not request.user or not hasattr(request.user, 'user_id'):
+        return Response({'success': False, 'message': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+    unread_only = str(request.query_params.get('unread', 'false')).lower() == 'true'
+    svc = NotificationService()
+    items = svc.list_notifications(request.user.user_id, unread_only=unread_only, limit=100)
+    return Response({'success': True, 'notifications': items}, status=status.HTTP_200_OK)
+
+
+@api_view(['PUT'])
+def mark_notification_read(request, notification_id):
+    if not hasattr(request, 'user') or not request.user or not hasattr(request.user, 'user_id'):
+        return Response({'success': False, 'message': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+    svc = NotificationService()
+    # Optional: verify ownership
+    notif = MongoDBService.get_document('notifications', notification_id)
+    if not notif or notif.get('user_id') != request.user.user_id:
+        return Response({'success': False, 'message': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+    ok = svc.mark_read(notification_id)
+    return Response({'success': ok}, status=status.HTTP_200_OK if ok else status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT'])
+def mark_all_notifications_read(request):
+    if not hasattr(request, 'user') or not request.user or not hasattr(request.user, 'user_id'):
+        return Response({'success': False, 'message': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+    svc = NotificationService()
+    updated = svc.mark_all_read(request.user.user_id)
+    return Response({'success': True, 'updated': updated}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def test_create_notification(request):
+    """Create a test notification for the current user (debug)."""
+    if not hasattr(request, 'user') or not request.user or not hasattr(request.user, 'user_id'):
+        return Response({'success': False, 'message': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+    notif_type = (request.data.get('type') or 'test').strip()
+    title = (request.data.get('title') or 'Test Notification').strip()
+    body = (request.data.get('body') or 'This is a test notification').strip()
+    data = request.data.get('data') or {}
+    try:
+        nid = NotificationService().create_notification(
+            user_id=request.user.user_id,
+            notification_type=notif_type,
+            title=title,
+            body=body,
+            data=data,
+        )
+        # Attempt to send unread for quick verification
+        NotificationService().send_unread_for_user(request.user.user_id)
+        return Response({'success': True, 'notification_id': nid}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({'success': False, 'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

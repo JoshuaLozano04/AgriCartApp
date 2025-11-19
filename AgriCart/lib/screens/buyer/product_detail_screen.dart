@@ -12,8 +12,13 @@ import '../../widgets/category_chip.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
+  final bool isSellerView;
 
-  const ProductDetailScreen({super.key, required this.productId});
+  const ProductDetailScreen({
+    super.key,
+    required this.productId,
+    this.isSellerView = false,
+  });
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -282,8 +287,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 24),
-                                // Quantity selector
-                                if (product.quantity > 0) ...[
+                                // Quantity selector (only for buyers)
+                                if (!widget.isSellerView && product.quantity > 0) ...[
                                   Text(
                                     'Quantity',
                                     style: AppTheme.heading3,
@@ -353,137 +358,138 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ),
                   ),
-                  // Bottom action bar
-                  if (product.quantity > 0)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppTheme.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, -2),
-                          ),
-                        ],
-                      ),
-                      child: SafeArea(
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Total',
-                                    style: AppTheme.bodySmall.copyWith(
-                                      color: AppTheme.textGray,
-                                    ),
-                                  ),
-                                  Text(
-                                    '₱${(product.price * _quantity).toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.primaryGreen,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              flex: 2,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  context.read<CartBloc>().add(
-                                        AddToCartEvent(
-                                          productId: product.productId,
-                                          price: product.price,
-                                          quantity: _quantity,
-                                        ),
-                                      );
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.check_circle,
-                                            color: AppTheme.white,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Added $_quantity ${product.unit} to cart',
-                                            style: const TextStyle(
-                                              color: AppTheme.white,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      backgroundColor: AppTheme.successGreen,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                  );
-                                  Navigator.pop(context);
-                                },
-                                icon: const Icon(Icons.shopping_cart_outlined),
-                                label: const Text('Add to Cart'),
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                ),
-                              ),
+                  // Bottom action bar (only for buyers)
+                  if (!widget.isSellerView)
+                    if (product.quantity > 0)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, -2),
                             ),
                           ],
                         ),
-                      ),
-                    )
-                  else
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppTheme.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, -2),
-                          ),
-                        ],
-                      ),
-                      child: SafeArea(
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppTheme.backgroundGray,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                        child: SafeArea(
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: AppTheme.errorRed,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Total',
+                                      style: AppTheme.bodySmall.copyWith(
+                                        color: AppTheme.textGray,
+                                      ),
+                                    ),
+                                    Text(
+                                      '₱${(product.price * _quantity).toStringAsFixed(2)}',
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.primaryGreen,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Out of Stock',
-                                style: TextStyle(
-                                  color: AppTheme.errorRed,
-                                  fontWeight: FontWeight.w600,
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 2,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    context.read<CartBloc>().add(
+                                          AddToCartEvent(
+                                            productId: product.productId,
+                                            price: product.price,
+                                            quantity: _quantity,
+                                          ),
+                                        );
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.check_circle,
+                                              color: AppTheme.white,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Added $_quantity ${product.unit} to cart',
+                                              style: const TextStyle(
+                                                color: AppTheme.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        backgroundColor: AppTheme.successGreen,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                    );
+                                    Navigator.pop(context);
+                                  },
+                                  icon: const Icon(Icons.shopping_cart_outlined),
+                                  label: const Text('Add to Cart'),
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, -2),
+                            ),
+                          ],
+                        ),
+                        child: SafeArea(
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppTheme.backgroundGray,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: AppTheme.errorRed,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Out of Stock',
+                                  style: TextStyle(
+                                    color: AppTheme.errorRed,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
                 ],
               );
             }

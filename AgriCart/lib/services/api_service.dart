@@ -140,7 +140,7 @@ class ApiService {
     } on TimeoutException catch (e) {
       throw Exception(e.message);
     } catch (e) {
-      throw Exception('Login failed: $e');
+      throw Exception('Wrong email or password');
     }
   }
 
@@ -281,13 +281,18 @@ class ApiService {
 
   Future<Map<String, dynamic>> updateOrderStatus(
     String orderId,
-    String status,
-  ) async {
+    String status, {
+    String? trackingNumber,
+  }) async {
     final headers = await _getAuthHeaders();
-    final response = await http.patch(
-      Uri.parse('$baseUrl/orders/$orderId/update/'),
+    final body = <String, dynamic>{'status': status};
+    if (trackingNumber != null && trackingNumber.isNotEmpty) {
+      body['tracking_number'] = trackingNumber;
+    }
+    final response = await http.put(
+      Uri.parse('$baseUrl/orders/$orderId/update-status/'),
       headers: headers,
-      body: json.encode({'status': status}),
+      body: json.encode(body),
     );
     return _handleResponse(response);
   }
@@ -376,6 +381,17 @@ class ApiService {
     final response = await http.get(
       Uri.parse('$baseUrl/analytics/sales/'),
       headers: headers,
+    );
+    return _handleResponse(response);
+  }
+
+  // Notifications
+  Future<Map<String, dynamic>> registerFcmToken(String token) async {
+    final headers = await _getAuthHeaders();
+    final response = await http.post(
+      Uri.parse('$baseUrl/notifications/register-token/'),
+      headers: headers,
+      body: json.encode({'token': token}),
     );
     return _handleResponse(response);
   }

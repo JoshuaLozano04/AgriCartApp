@@ -7,6 +7,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from utils.mongodb_service import MongoDBService
+from utils.fcm_service import FCMService
+from utils.notification_service import NotificationService
 import uuid
 
 
@@ -362,6 +364,19 @@ def send_message_rest(request):
             'last_message_at': 'SERVER_TIMESTAMP',
             'updated_at': 'SERVER_TIMESTAMP'
         })
+        
+        # Create notification and push if unread
+        try:
+            NotificationService().create_notification(
+                user_id=receiver_id,
+                notification_type='chat_message',
+                title='New Message',
+                body=message_text,
+                data={'thread_id': conversation_id}
+            )
+            NotificationService().send_unread_for_user(receiver_id)
+        except Exception:
+            pass
         
         return Response({
             'success': True,

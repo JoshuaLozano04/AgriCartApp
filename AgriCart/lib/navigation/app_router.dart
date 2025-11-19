@@ -5,6 +5,7 @@ import '../screens/auth/register_screen.dart';
 import '../screens/buyer/buyer_main_screen.dart';
 import '../screens/seller/seller_main_screen.dart';
 import '../screens/buyer/order_detail_screen.dart';
+import '../screens/common/debug_screen.dart';
 import '../bloc/orders/orders_bloc.dart';
 import '../bloc/orders/orders_event.dart';
 import '../services/api_service.dart';
@@ -14,6 +15,7 @@ class AppRouter {
   static const String register = '/register';
   static const String buyerHome = '/buyer';
   static const String sellerHome = '/seller';
+  static const String debug = '/debug';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     // Intercept payment-related deep links that might come through routing system
@@ -73,6 +75,11 @@ class AppRouter {
       case sellerHome:
         return MaterialPageRoute(
           builder: (_) => const SellerMainScreen(),
+          settings: settings,
+        );
+      case debug:
+        return MaterialPageRoute(
+          builder: (_) => const DebugScreen(),
           settings: settings,
         );
       default:

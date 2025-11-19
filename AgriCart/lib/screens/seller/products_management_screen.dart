@@ -8,6 +8,7 @@ import '../../services/api_service.dart';
 import '../../widgets/product_card.dart';
 import 'add_product_screen.dart';
 import 'edit_product_screen.dart';
+import '../buyer/product_detail_screen.dart';
 
 class ProductsManagementScreen extends StatelessWidget {
   final String sellerId;
@@ -20,6 +21,9 @@ class ProductsManagementScreen extends StatelessWidget {
       create: (context) => SellerBloc(apiService: ApiService())
         ..add(LoadSellerProductsEvent(sellerId: sellerId)),
       child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Manage Products'),
+        ),
         backgroundColor: AppTheme.backgroundGray,
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () {
@@ -161,8 +165,16 @@ class ProductsManagementScreen extends StatelessWidget {
                         ProductCard(
                           product: product,
                           onTap: () {
-                            // Navigate to edit screen or show details
-                            _showProductOptions(context, product);
+                            // Navigate to product detail screen (seller view - no cart functionality)
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProductDetailScreen(
+                                  productId: product.productId,
+                                  isSellerView: true,
+                                ),
+                              ),
+                            );
                           },
                         ),
                         Positioned(
@@ -221,6 +233,22 @@ class ProductsManagementScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ListTile(
+              leading: Icon(Icons.visibility, color: AppTheme.primaryGreen),
+              title: const Text('View Details'),
+              onTap: () {
+                Navigator.pop(bottomSheetContext);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProductDetailScreen(
+                      productId: product.productId,
+                      isSellerView: true,
+                    ),
+                  ),
+                );
+              },
+            ),
             ListTile(
               leading: Icon(Icons.edit, color: AppTheme.primaryGreen),
               title: const Text('Edit Product'),

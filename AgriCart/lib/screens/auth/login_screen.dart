@@ -64,18 +64,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 60),
-                    // Logo/Icon
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryGreen,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.shopping_cart_outlined,
-                        size: 50,
-                        color: AppTheme.white,
+                    // Logo
+                    Center(
+                      child: Image.asset(
+                        'assets/images/agricart_logo.jpeg',
+                        width: 150,
+                        height: 150,
+                        fit: BoxFit.contain,
                       ),
                     ),
                     const SizedBox(height: 24),

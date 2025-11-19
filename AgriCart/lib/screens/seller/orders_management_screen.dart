@@ -5,6 +5,7 @@ import '../../bloc/orders/orders_event.dart';
 import '../../bloc/orders/orders_state.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
+import 'seller_order_detail_screen.dart';
 import '../../models/order.dart';
 
 class OrdersManagementScreen extends StatelessWidget {
@@ -149,6 +150,7 @@ class OrdersManagementScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: AppTheme.cardDecoration,
       child: ExpansionTile(
+        key: ValueKey('${order.orderId}_${order.status}'),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -167,6 +169,7 @@ class OrdersManagementScreen extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
+        // Keep default expand chevron; remove external-link icon
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -201,20 +204,22 @@ class OrdersManagementScreen extends StatelessWidget {
                   style: AppTheme.bodyMedium,
                 ),
                 const SizedBox(height: 12),
-                ...['pending', 'confirmed', 'processing'].contains(order.status.toLowerCase())
-                    ? [
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              _showStatusUpdateDialog(context, order);
-                            },
-                            icon: const Icon(Icons.update),
-                            label: const Text('Update Status'),
-                          ),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => SellerOrderDetailScreen(orderId: order.orderId),
                         ),
-                      ]
-                    : [],
+                      );
+                    },
+                    icon: const Icon(Icons.visibility_outlined),
+                    label: const Text('View Details'),
+                  ),
+                ),
+                const SizedBox(height: 8),
               ],
             ),
           ),

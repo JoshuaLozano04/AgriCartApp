@@ -37,14 +37,16 @@ class LoadOrderDetailsEvent extends OrdersEvent {
 class UpdateOrderStatusEvent extends OrdersEvent {
   final String orderId;
   final String status;
+  final String? trackingNumber;
 
   const UpdateOrderStatusEvent({
     required this.orderId,
     required this.status,
+    this.trackingNumber,
   });
 
   @override
-  List<Object?> get props => [orderId, status];
+  List<Object?> get props => [orderId, status, trackingNumber];
 }
 
 class CreatePaymentEvent extends OrdersEvent {

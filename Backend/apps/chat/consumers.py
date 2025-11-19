@@ -6,6 +6,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from utils.jwt_auth import verify_token
 from utils.mongodb_service import MongoDBService
+from utils.notification_service import NotificationService
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -233,6 +234,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'last_message_at': 'SERVER_TIMESTAMP',
                 'updated_at': 'SERVER_TIMESTAMP'
             })
+
+            # Persist a notification for receiver and attempt to send unread
+            try:
+                NotificationService().create_notification(
+                    user_id=receiver_id,
+                    notification_type='chat_message',
+                    title='New Message',
+                    body=message_text,
+                    data={'thread_id': self.conversation_id}
+                )
+                NotificationService().send_unread_for_user(receiver_id)
+            except Exception as e:
+                print(f'Notification error (chat ws): {e}')
             
             return message_id
         except Exception as e:

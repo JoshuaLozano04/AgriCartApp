@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../services/api_service.dart';
 import 'orders_event.dart';
 import 'orders_state.dart';
+import '../../models/order.dart';
 
 class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   final ApiService apiService;
@@ -72,15 +73,46 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     UpdateOrderStatusEvent event,
     Emitter<OrdersState> emit,
   ) async {
+    final previousState = state;
     emit(OrdersLoading());
     try {
       final response = await apiService.updateOrderStatus(
         event.orderId,
         event.status,
+        trackingNumber: event.trackingNumber,
       );
       if (response['success'] == true) {
-        // Reload orders to reflect the change
-        add(const LoadOrdersEvent());
+        // Optimistic UI update: if we had a list loaded, update the item locally
+        if (previousState is OrdersLoaded) {
+          final currentOrders = previousState.orders;
+          final updated = currentOrders.map((o) {
+            if (o.orderId == event.orderId) {
+              return Order(
+                orderId: o.orderId,
+                buyerId: o.buyerId,
+                sellerId: o.sellerId,
+                items: o.items,
+                shippingAddress: o.shippingAddress,
+                paymentMethod: o.paymentMethod,
+                totalAmount: o.totalAmount,
+                status: event.status,
+                paymentStatus: o.paymentStatus,
+                trackingNumber: event.trackingNumber ?? o.trackingNumber,
+                createdAt: o.createdAt,
+                updatedAt: o.updatedAt,
+              );
+            }
+            return o;
+          }).toList();
+          emit(OrdersLoaded(orders: updated));
+          // Also trigger background refresh to stay consistent with server
+          add(const LoadOrdersEvent());
+        } else if (previousState is OrderDetailsLoaded) {
+          // If we were on details, reload the details
+          add(LoadOrderDetailsEvent(orderId: previousState.order.orderId));
+        } else {
+          add(const LoadOrdersEvent());
+        }
       } else {
         emit(OrdersError(message: response['message'] ?? 'Failed to update order status'));
       }

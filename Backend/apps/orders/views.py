@@ -9,6 +9,7 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from utils.mongodb_service import MongoDBService
 from utils.fcm_service import FCMService
+from utils.notification_service import NotificationService
 from .serializers import OrderSerializer, OrderStatusUpdateSerializer
 import uuid
 
@@ -44,32 +45,37 @@ def send_order_notification(order_data, notification_type='status_update'):
             }
         )
         
-        # Send push notification
-        fcm_service = FCMService()
+        # Persist notifications and push if unread
+        notif_svc = NotificationService()
         
-        # Get buyer device tokens
-        buyer = MongoDBService.get_document('users', buyer_id)
-        if buyer:
-            device_tokens = buyer.get('fcm_tokens', [])
-            if device_tokens:
-                fcm_service.send_multicast_notification(
-                    device_tokens,
-                    'Order Update',
-                    f'Your order #{order_id[:8]} status: {order_status}',
-                    {'type': 'order_update', 'order_id': order_id, 'status': order_status}
-                )
+        # Buyer notification (always order_update for buyer)
+        notif_svc.create_notification(
+            user_id=buyer_id,
+            notification_type='order_update',
+            title='Order Update',
+            body=f'Your order #{order_id[:8]} status: {order_status}',
+            data={'order_id': order_id, 'status': order_status}
+        )
+        notif_svc.send_unread_for_user(buyer_id)
         
-        # Get seller device tokens
-        seller = MongoDBService.get_document('users', seller_id)
-        if seller:
-            device_tokens = seller.get('fcm_tokens', [])
-            if device_tokens:
-                fcm_service.send_multicast_notification(
-                    device_tokens,
-                    'New Order Update',
-                    f'Order #{order_id[:8]} status: {order_status}',
-                    {'type': 'order_update', 'order_id': order_id, 'status': order_status}
-                )
+        # Seller notification: order_request on new order; order_update on status changes
+        if notification_type == 'new_order':
+            notif_type = 'order_request'
+            title = 'New Order Request'
+            body = f'New order #{order_id[:8]} placed.'
+        else:
+            notif_type = 'order_update'
+            title = 'Order Update'
+            body = f'Order #{order_id[:8]} status: {order_status}'
+
+        notif_svc.create_notification(
+            user_id=seller_id,
+            notification_type=notif_type,
+            title=title,
+            body=body,
+            data={'order_id': order_id, 'status': order_status}
+        )
+        notif_svc.send_unread_for_user(seller_id)
     except Exception as e:
         print(f'Error sending order notification: {e}')
 
@@ -174,6 +180,27 @@ def create_order(request):
                         'quantity': max(0, new_quantity),
                         'updated_at': 'SERVER_TIMESTAMP'
                     })
+                    # Low stock notification when quantity hits exactly 5
+                    try:
+                        final_qty = max(0, new_quantity)
+                        if final_qty == 5:
+                            seller = MongoDBService.get_document('users', product.get('seller_id'))
+                            if seller:
+                                tokens = seller.get('fcm_tokens', [])
+                                if tokens:
+                                    NotificationService().create_notification(
+                                        user_id=product.get('seller_id'),
+                                        notification_type='low_stock',
+                                        title='Low Stock Alert',
+                                        body=f"{product.get('name', 'Product')} stock is down to 5",
+                                        data={
+                                            'product_id': product.get('product_id') or item['product_id'],
+                                            'qty': '5'
+                                        }
+                                    )
+                                    NotificationService().send_unread_for_user(product.get('seller_id'))
+                    except Exception:
+                        pass
             
             # Send notification to seller
             send_order_notification(order_data, 'new_order')

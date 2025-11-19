@@ -82,8 +82,26 @@ class FCMService:
             
             response = messaging.send_multicast(message)
             print(f'Successfully sent {response.success_count} messages')
-            return response.success_count
+            # Determine invalid tokens to prune
+            invalid_tokens = []
+            try:
+                for idx, resp in enumerate(getattr(response, 'responses', [])):
+                    if not getattr(resp, 'success', False):
+                        exc = getattr(resp, 'exception', None)
+                        code = getattr(exc, 'code', None) if exc else None
+                        if code in ('UNREGISTERED', 'INVALID_ARGUMENT'):
+                            if idx < len(device_tokens):
+                                invalid_tokens.append(device_tokens[idx])
+            except Exception:
+                pass
+            return {
+                'success_count': response.success_count,
+                'invalid_tokens': invalid_tokens,
+            }
         except Exception as e:
             print(f'Error sending multicast notification: {e}')
-            return 0
+            return {
+                'success_count': 0,
+                'invalid_tokens': [],
+            }
 
