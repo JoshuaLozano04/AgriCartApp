@@ -14,6 +14,13 @@ class ProfileDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(16),
+          bottomRight: Radius.circular(16),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           // Get current user from auth state
@@ -26,20 +33,23 @@ class ProfileDrawer extends StatelessWidget {
           return ListView(
             padding: EdgeInsets.zero,
             children: [
-              UserAccountsDrawerHeader(
-                decoration: const BoxDecoration(
-                  color: Colors.green,
-                ),
-                accountName: Text(currentUser?.fullName ?? 'Guest'),
-                accountEmail: Text(currentUser?.email ?? ''),
-                currentAccountPicture: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  child: Text(
-                    initials,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
+              ClipRRect(
+                borderRadius: const BorderRadius.only(topRight: Radius.circular(16)),
+                child: UserAccountsDrawerHeader(
+                  decoration: const BoxDecoration(
+                    color: Colors.green,
+                  ),
+                  accountName: Text(currentUser?.fullName ?? 'Guest'),
+                  accountEmail: Text(currentUser?.email ?? ''),
+                  currentAccountPicture: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    child: Text(
+                      initials,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
                     ),
                   ),
                 ),
