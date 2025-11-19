@@ -12,7 +12,7 @@ import 'token_storage_service.dart';
 
 class ApiService {
   final TokenStorageService _tokenStorage = TokenStorageService();
-  
+
   static String get baseUrl {
     try {
       final envUrl = dotenv.env['API_BASE_URL'];
@@ -26,7 +26,7 @@ class ApiService {
       // dotenv not initialized - will use default below
       debugPrint('API Service: dotenv not initialized, error: $e');
     }
-    
+
     // Default URL based on platform
     if (kIsWeb) {
       return 'http://localhost:8000/api';
@@ -48,7 +48,7 @@ class ApiService {
       return 'http://localhost:8000/api';
     }
   }
-  
+
   static String get imageServiceUrl {
     try {
       final envUrl = dotenv.env['IMAGE_SERVICE_URL'];
@@ -58,26 +58,27 @@ class ApiService {
     } catch (e) {
       // dotenv not initialized - will use default below
     }
-    
+
     // Default to baseUrl + /images
     return '${baseUrl.replaceAll('/api', '')}/api/images';
   }
-  
+
   /// Get headers with authentication token if available
-  Future<Map<String, String>> _getAuthHeaders({Map<String, String>? additionalHeaders}) async {
+  Future<Map<String, String>> _getAuthHeaders(
+      {Map<String, String>? additionalHeaders}) async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
       ...?additionalHeaders,
     };
-    
+
     final token = await _tokenStorage.getToken();
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
-    
+
     return headers;
   }
-  
+
   Future<Map<String, dynamic>> _handleResponse(http.Response response) async {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       try {
@@ -89,9 +90,11 @@ class ApiService {
       // Try to parse error response
       try {
         final errorBody = json.decode(response.body);
-        throw Exception('Request failed: ${response.statusCode} - ${errorBody['message'] ?? response.body}');
+        throw Exception(
+            'Request failed: ${response.statusCode} - ${errorBody['message'] ?? response.body}');
       } catch (e) {
-        throw Exception('Request failed: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Request failed: ${response.statusCode} - ${response.body}');
       }
     }
   }
@@ -114,21 +117,29 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> login(String email, String password) async {
+    print('DEBUG API: Login request to $baseUrl/auth/login/');
+    print('DEBUG API: Email: $email');
     try {
-      final response = await http.post(
+      final response = await http
+          .post(
         Uri.parse('$baseUrl/auth/login/'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'email': email, 'password': password}),
-      ).timeout(
+      )
+          .timeout(
         const Duration(seconds: 30),
         onTimeout: () {
-          throw TimeoutException('Connection to server timed out. Please check:\n'
+          print('DEBUG API: Login request timed out');
+          throw TimeoutException(
+              'Connection to server timed out. Please check:\n'
               '1. Django server is running\n'
               '2. Correct IP address in .env (API_BASE_URL)\n'
               '3. Device and computer are on the same network\n'
               '4. Firewall is not blocking port 8000');
         },
       );
+      print('DEBUG API: Login response status: ${response.statusCode}');
+      print('DEBUG API: Login response body: ${response.body}');
       return _handleResponse(response);
     } on SocketException catch (e) {
       throw Exception('Cannot connect to server at $baseUrl\n'
@@ -147,8 +158,10 @@ class ApiService {
   Future<Map<String, dynamic>> getUserProfile() async {
     final headers = await _getAuthHeaders();
     final token = await _tokenStorage.getToken();
-    print('DEBUG: Token retrieved: ${token != null ? "Token exists (${token.length} chars)" : "No token"}');
-    print('DEBUG: Authorization header: ${headers['Authorization'] ?? "Not set"}');
+    print(
+        'DEBUG: Token retrieved: ${token != null ? "Token exists (${token.length} chars)" : "No token"}');
+    print(
+        'DEBUG: Authorization header: ${headers['Authorization'] ?? "Not set"}');
     final response = await http.get(
       Uri.parse('$baseUrl/users/profile/'),
       headers: headers,
@@ -175,10 +188,11 @@ class ApiService {
     if (search != null) queryParams['search'] = search;
     if (sellerId != null) queryParams['seller_id'] = sellerId;
 
-    final uri = Uri.parse('$baseUrl/products/').replace(queryParameters: queryParams);
+    final uri =
+        Uri.parse('$baseUrl/products/').replace(queryParameters: queryParams);
     final response = await http.get(uri);
     final data = await _handleResponse(response);
-    
+
     if (data['success'] == true) {
       return (data['products'] as List)
           .map((json) => Product.fromJson(json))
@@ -239,29 +253,38 @@ class ApiService {
     debugPrint('DEBUG ApiService.getOrder: Fetching order $orderId');
     try {
       final headers = await _getAuthHeaders();
-      debugPrint('DEBUG ApiService.getOrder: Headers prepared, token: ${headers.containsKey('Authorization') ? "present" : "missing"}');
-      debugPrint('DEBUG ApiService.getOrder: Request URL: $baseUrl/orders/$orderId/');
-      
-      final response = await http.get(
+      debugPrint(
+          'DEBUG ApiService.getOrder: Headers prepared, token: ${headers.containsKey('Authorization') ? "present" : "missing"}');
+      debugPrint(
+          'DEBUG ApiService.getOrder: Request URL: $baseUrl/orders/$orderId/');
+
+      final response = await http
+          .get(
         Uri.parse('$baseUrl/orders/$orderId/'),
         headers: headers,
-      ).timeout(
+      )
+          .timeout(
         const Duration(seconds: 30),
         onTimeout: () {
           debugPrint('DEBUG ApiService.getOrder: Request timed out');
-          throw TimeoutException('Connection to server timed out. Please check your network connection.');
+          throw TimeoutException(
+              'Connection to server timed out. Please check your network connection.');
         },
       );
-      
-      debugPrint('DEBUG ApiService.getOrder: Response status: ${response.statusCode}');
-      debugPrint('DEBUG ApiService.getOrder: Response body length: ${response.body.length}');
-      
+
+      debugPrint(
+          'DEBUG ApiService.getOrder: Response status: ${response.statusCode}');
+      debugPrint(
+          'DEBUG ApiService.getOrder: Response body length: ${response.body.length}');
+
       final data = await _handleResponse(response);
-      debugPrint('DEBUG ApiService.getOrder: Parsed response, success: ${data['success']}');
-      
+      debugPrint(
+          'DEBUG ApiService.getOrder: Parsed response, success: ${data['success']}');
+
       if (data['success'] == true) {
         final order = Order.fromJson(data['order']);
-        debugPrint('DEBUG ApiService.getOrder: Order parsed successfully, orderId: ${order.orderId}');
+        debugPrint(
+            'DEBUG ApiService.getOrder: Order parsed successfully, orderId: ${order.orderId}');
         return order;
       }
       debugPrint('DEBUG ApiService.getOrder: Response success is false');
@@ -333,6 +356,49 @@ class ApiService {
     return [];
   }
 
+  /// Get all conversations for current user
+  Future<Map<String, dynamic>> getUserConversations() async {
+    final headers = await _getAuthHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/messages/conversations/'),
+      headers: headers,
+    );
+    return _handleResponse(response);
+  }
+
+  /// Get messages for a specific conversation
+  Future<Map<String, dynamic>> getConversationMessages(String conversationId) async {
+    final headers = await _getAuthHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/messages/conversation/$conversationId/'),
+      headers: headers,
+    );
+    return _handleResponse(response);
+  }
+
+  /// Create or get conversation with another user
+  Future<Map<String, dynamic>> createOrGetConversation(String otherUserId) async {
+    final headers = await _getAuthHeaders();
+    final response = await http.post(
+      Uri.parse('$baseUrl/messages/conversation/create/'),
+      headers: headers,
+      body: json.encode({
+        'user2_id': otherUserId,
+      }),
+    );
+    return _handleResponse(response);
+  }
+
+  /// Mark all messages in a conversation as read
+  Future<Map<String, dynamic>> markConversationRead(String conversationId) async {
+    final headers = await _getAuthHeaders();
+    final response = await http.put(
+      Uri.parse('$baseUrl/messages/conversation/$conversationId/mark-read/'),
+      headers: headers,
+    );
+    return _handleResponse(response);
+  }
+
   // Payment endpoints
   Future<Map<String, dynamic>> createPayment({
     required String orderId,
@@ -396,4 +462,3 @@ class ApiService {
     return _handleResponse(response);
   }
 }
-

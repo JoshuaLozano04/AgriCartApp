@@ -5,6 +5,7 @@ import '../../bloc/auth/auth_event.dart';
 import '../../bloc/auth/auth_state.dart';
 import '../../navigation/app_router.dart';
 import '../../widgets/app_drawer.dart';
+import '../chat/chat_list_screen.dart';
 import 'products_list_screen.dart';
 import 'cart_screen.dart';
 import 'orders_list_screen.dart';
@@ -30,6 +31,7 @@ class _BuyerMainScreenState extends State<BuyerMainScreen> {
           const ProductsListScreen(),
           const CartScreen(),
           OrdersListScreen(userId: userId),
+          const ChatListScreen(),
         ];
 
         return Scaffold(
@@ -71,6 +73,11 @@ class _BuyerMainScreenState extends State<BuyerMainScreen> {
                 activeIcon: Icon(Icons.receipt_long),
                 label: 'Orders',
               ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.chat_bubble_outline),
+                activeIcon: Icon(Icons.chat_bubble),
+                label: 'Chat',
+              ),
             ],
           ),
         );
@@ -86,6 +93,8 @@ class _BuyerMainScreenState extends State<BuyerMainScreen> {
         return 'Shopping Cart';
       case 2:
         return 'My Orders';
+      case 3:
+        return 'Messages';
       default:
         return 'AgriCart';
     }

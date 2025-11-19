@@ -10,7 +10,6 @@ https://docs.djangoproject.com/en/5.0/howto/deployment/asgi/
 import os
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.auth import AuthMiddlewareStack
 from channels.security.websocket import AllowedHostsOriginValidator
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'agricart_api.settings')
@@ -19,16 +18,15 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'agricart_api.settings')
 # is populated before importing code that may import ORM models.
 django_asgi_app = get_asgi_application()
 
-# Import routing after Django setup
+# Import routing and token middleware after Django setup
 from apps.chat import routing
+from utils.channels_token_middleware import TokenAuthMiddlewareStack
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
-    "websocket": AllowedHostsOriginValidator(
-        AuthMiddlewareStack(
-            URLRouter(
-                routing.websocket_urlpatterns
-            )
+    "websocket": TokenAuthMiddlewareStack(
+        URLRouter(
+            routing.websocket_urlpatterns
         )
     ),
 })

@@ -5,6 +5,7 @@ import '../../bloc/auth/auth_event.dart';
 import '../../bloc/auth/auth_state.dart';
 import '../../navigation/app_router.dart';
 import '../../widgets/app_drawer.dart';
+import '../chat/chat_list_screen.dart';
 import 'seller_dashboard_screen.dart';
 import 'products_management_screen.dart';
 import 'analytics_screen.dart';
@@ -30,6 +31,7 @@ class _SellerMainScreenState extends State<SellerMainScreen> {
           SellerDashboardScreen(sellerId: sellerId),
           ProductsManagementScreen(sellerId: sellerId),
           AnalyticsScreen(sellerId: sellerId),
+          const ChatListScreen(),
         ];
 
         return Scaffold(
@@ -71,6 +73,11 @@ class _SellerMainScreenState extends State<SellerMainScreen> {
                 activeIcon: Icon(Icons.analytics),
                 label: 'Analytics',
               ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.chat_bubble_outline),
+                activeIcon: Icon(Icons.chat_bubble),
+                label: 'Chat',
+              ),
             ],
           ),
         );
@@ -86,6 +93,8 @@ class _SellerMainScreenState extends State<SellerMainScreen> {
         return 'Manage Products';
       case 2:
         return 'Analytics';
+      case 3:
+        return 'Messages';
       default:
         return 'AgriCart';
     }

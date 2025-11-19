@@ -31,7 +31,10 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
+          print('DEBUG LoginScreen: State changed to ${state.runtimeType}');
           if (state is AuthAuthenticated) {
+            print(
+                'DEBUG LoginScreen: User authenticated, role: ${state.user.role}');
             // Navigate based on user role
             if (state.user.role == 'seller') {
               AppRouter.navigateToSellerHome(context);
@@ -187,17 +190,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin() {
-    // Navigate immediately to the dashboard so the app is usable without backend
-    // This is a development fallback. We still try to authenticate if the form is valid.
-    AppRouter.navigateToSellerHome(context);
-
+    print('DEBUG LoginScreen: _handleLogin called');
     if (_formKey.currentState?.validate() ?? false) {
+      print('DEBUG LoginScreen: Form validated, dispatching LoginEvent');
       context.read<AuthBloc>().add(
-        LoginEvent(
-          email: _emailController.text.trim().toLowerCase(),
-          password: _passwordController.text,
-        ),
-      );
+            LoginEvent(
+              email: _emailController.text.trim().toLowerCase(),
+              password: _passwordController.text,
+            ),
+          );
+    } else {
+      print('DEBUG LoginScreen: Form validation failed');
     }
   }
 }

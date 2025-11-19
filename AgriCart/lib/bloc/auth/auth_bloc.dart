@@ -28,7 +28,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         // Load user profile after registration
         add(LoadUserProfileEvent(userId: response['user_id']));
       } else {
-        emit(AuthError(message: response['message'] ?? 'Registration failed. Please try again.'));
+        emit(AuthError(
+            message: response['message'] ??
+                'Registration failed. Please try again.'));
       }
     } catch (e) {
       emit(AuthError(message: 'Something went wrong. Please try again.'));
@@ -36,15 +38,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit) async {
+    print('DEBUG AuthBloc: Login attempt for email: ${event.email}');
     emit(AuthLoading());
     try {
+      print('DEBUG AuthBloc: Calling API login...');
       final response = await apiService.login(event.email, event.password);
+      print('DEBUG AuthBloc: API response: $response');
       if (response['success'] == true && response['user'] != null) {
         // Save token if provided
         if (response['token'] != null) {
           await _tokenStorage.saveToken(response['token']);
         }
-        
+
         final userData = response['user'];
         final user = User(
           userId: userData['user_id'] ?? '',
@@ -54,16 +59,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           role: userData['role'] ?? 'buyer',
           isVerified: userData['is_verified'] ?? false,
         );
+        print('DEBUG AuthBloc: Login successful, emitting AuthAuthenticated');
         emit(AuthAuthenticated(user: user));
       } else {
-        emit(AuthError(message: response['message'] ?? 'Wrong email or password'));
+        print('DEBUG AuthBloc: Login failed - ${response['message']}');
+        emit(AuthError(
+            message: response['message'] ?? 'Wrong email or password'));
       }
     } catch (e) {
+      print('DEBUG AuthBloc: Login exception: $e');
       emit(AuthError(message: 'Wrong email or password'));
     }
   }
 
-  Future<void> _onVerifyUser(VerifyUserEvent event, Emitter<AuthState> emit) async {
+  Future<void> _onVerifyUser(
+      VerifyUserEvent event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
       // Note: Verification endpoint would need to be added to ApiService
@@ -74,18 +84,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  Future<void> _onLoadUserProfile(LoadUserProfileEvent event, Emitter<AuthState> emit) async {
+  Future<void> _onLoadUserProfile(
+      LoadUserProfileEvent event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
       // Check if token exists before making request
       final hasToken = await _tokenStorage.hasToken();
       print('DEBUG AuthBloc: Loading profile, hasToken=$hasToken');
-      
+
       if (!hasToken) {
         emit(AuthUnauthenticated());
         return;
       }
-      
+
       final response = await apiService.getUserProfile();
       if (response['success'] == true && response['user'] != null) {
         final user = User.fromJson(response['user']);
@@ -95,9 +106,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
     } catch (e) {
       print('DEBUG AuthBloc: Error loading profile: $e');
-      
+
       // Handle connection errors gracefully
-      if (e.toString().contains('Connection refused') || 
+      if (e.toString().contains('Connection refused') ||
           e.toString().contains('SocketException') ||
           e.toString().contains('Failed host lookup')) {
         // Connection error - likely server not running or wrong URL
@@ -106,27 +117,29 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthUnauthenticated()); // Go back to login screen
         return;
       }
-      
+
       // If unauthorized, clear token and logout
-      if (e.toString().contains('401') || e.toString().contains('Unauthorized')) {
+      if (e.toString().contains('401') ||
+          e.toString().contains('Unauthorized')) {
         print('DEBUG AuthBloc: Unauthorized - deleting token');
         await _tokenStorage.deleteToken();
         emit(AuthUnauthenticated());
         return;
       }
-      
+
       // Other errors
       emit(AuthError(message: 'Error loading profile: $e'));
     }
   }
-  
-  Future<void> _onLoadStoredToken(LoadStoredTokenEvent event, Emitter<AuthState> emit) async {
+
+  Future<void> _onLoadStoredToken(
+      LoadStoredTokenEvent event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
       final hasToken = await _tokenStorage.hasToken();
       if (hasToken) {
         // Token exists, load user profile to verify it's valid
-        add(LoadUserProfileEvent(userId: ''));  // userId no longer needed
+        add(LoadUserProfileEvent(userId: '')); // userId no longer needed
       } else {
         emit(AuthUnauthenticated());
       }
@@ -135,7 +148,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  Future<void> _onUpdateProfile(UpdateProfileEvent event, Emitter<AuthState> emit) async {
+  Future<void> _onUpdateProfile(
+      UpdateProfileEvent event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
       // Note: Update profile endpoint would need to be added to ApiService
@@ -151,4 +165,3 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthUnauthenticated());
   }
 }
-

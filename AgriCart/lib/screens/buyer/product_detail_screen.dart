@@ -6,9 +6,12 @@ import '../../bloc/products/products_event.dart';
 import '../../bloc/products/products_state.dart';
 import '../../bloc/cart/cart_bloc.dart';
 import '../../bloc/cart/cart_event.dart';
+import '../../bloc/auth/auth_bloc.dart';
+import '../../bloc/auth/auth_state.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
 import '../../widgets/category_chip.dart';
+import '../chat/chat_detail_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -36,6 +39,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Product Details'),
+          actions: [
+            if (!widget.isSellerView)
+              BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, authState) {
+                  return BlocBuilder<ProductsBloc, ProductsState>(
+                    builder: (context, productState) {
+                      if (productState is ProductDetailsLoaded) {
+                        return IconButton(
+                          icon: const Icon(Icons.chat_bubble_outline),
+                          tooltip: 'Chat with seller',
+                          onPressed: () => _openChat(
+                            context,
+                            productState.product.sellerId,
+                            authState,
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  );
+                },
+              ),
+          ],
         ),
         body: BlocBuilder<ProductsBloc, ProductsState>(
           builder: (context, state) {
@@ -498,5 +524,77 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
       ),
     );
+  }
+
+  /// Open chat with seller
+  Future<void> _openChat(
+    BuildContext context,
+    String sellerId,
+    AuthState authState,
+  ) async {
+    if (authState is! AuthAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to chat with seller')),
+      );
+      return;
+    }
+
+    final currentUserId = authState.user.userId;
+    if (currentUserId == sellerId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cannot chat with yourself')),
+      );
+      return;
+    }
+
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: AppTheme.primaryGreen),
+        ),
+      );
+
+      // Create or get conversation
+      final apiService = ApiService();
+      final response = await apiService.createOrGetConversation(sellerId);
+
+      if (!context.mounted) return;
+      
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      if (response['success'] == true) {
+        final conversationId = response['conversation_id'];
+        final conversation = response['conversation'] as Map<String, dynamic>?;
+        final otherUser = conversation?['other_user'] as Map<String, dynamic>?;
+        final otherUserName = otherUser?['full_name'] ?? 'Seller';
+
+        // Navigate to chat detail
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ChatDetailScreen(
+              conversationId: conversationId,
+              otherUserId: sellerId,
+              otherUserName: otherUserName,
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['message'] ?? 'Failed to open chat'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error opening chat: $e')),
+      );
+    }
   }
 }
