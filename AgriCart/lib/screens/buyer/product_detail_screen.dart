@@ -136,7 +136,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       return CachedNetworkImage(
                                         imageUrl: imageUrls[index],
                                         fit: BoxFit.cover,
-                                        placeholder: (context, url) => Container(
+                                        placeholder: (context, url) =>
+                                            Container(
                                           color: AppTheme.veryLightGreen,
                                           child: Center(
                                             child: CircularProgressIndicator(
@@ -198,7 +199,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ),
                               ),
                             ),
-                          
+
                           // Product info
                           Container(
                             padding: const EdgeInsets.all(20),
@@ -314,7 +315,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ),
                                 const SizedBox(height: 24),
                                 // Quantity selector (only for buyers)
-                                if (!widget.isSellerView && product.quantity > 0) ...[
+                                if (!widget.isSellerView &&
+                                    product.quantity > 0) ...[
                                   Text(
                                     'Quantity',
                                     style: AppTheme.heading3,
@@ -348,7 +350,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                             ),
                                             Container(
                                               width: 60,
-                                              padding: const EdgeInsets.symmetric(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
                                                 horizontal: 16,
                                               ),
                                               child: Text(
@@ -362,14 +365,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                 Icons.add,
                                                 color: AppTheme.primaryGreen,
                                               ),
-                                              onPressed: _quantity <
-                                                      product.quantity
-                                                  ? () {
-                                                      setState(() {
-                                                        _quantity++;
-                                                      });
-                                                    }
-                                                  : null,
+                                              onPressed:
+                                                  _quantity < product.quantity
+                                                      ? () {
+                                                          setState(() {
+                                                            _quantity++;
+                                                          });
+                                                        }
+                                                      : null,
                                             ),
                                           ],
                                         ),
@@ -456,13 +459,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         backgroundColor: AppTheme.successGreen,
                                         behavior: SnackBarBehavior.floating,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                         ),
                                       ),
                                     );
                                     Navigator.pop(context);
                                   },
-                                  icon: const Icon(Icons.shopping_cart_outlined),
+                                  icon:
+                                      const Icon(Icons.shopping_cart_outlined),
                                   label: const Text('Add to Cart'),
                                   style: ElevatedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(
@@ -562,7 +567,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       final response = await apiService.createOrGetConversation(sellerId);
 
       if (!context.mounted) return;
-      
+
       // Close loading dialog
       Navigator.of(context).pop();
 

@@ -367,7 +367,8 @@ class ApiService {
   }
 
   /// Get messages for a specific conversation
-  Future<Map<String, dynamic>> getConversationMessages(String conversationId) async {
+  Future<Map<String, dynamic>> getConversationMessages(
+      String conversationId) async {
     final headers = await _getAuthHeaders();
     final response = await http.get(
       Uri.parse('$baseUrl/messages/conversation/$conversationId/'),
@@ -377,7 +378,8 @@ class ApiService {
   }
 
   /// Create or get conversation with another user
-  Future<Map<String, dynamic>> createOrGetConversation(String otherUserId) async {
+  Future<Map<String, dynamic>> createOrGetConversation(
+      String otherUserId) async {
     final headers = await _getAuthHeaders();
     final response = await http.post(
       Uri.parse('$baseUrl/messages/conversation/create/'),
@@ -390,7 +392,8 @@ class ApiService {
   }
 
   /// Mark all messages in a conversation as read
-  Future<Map<String, dynamic>> markConversationRead(String conversationId) async {
+  Future<Map<String, dynamic>> markConversationRead(
+      String conversationId) async {
     final headers = await _getAuthHeaders();
     final response = await http.put(
       Uri.parse('$baseUrl/messages/conversation/$conversationId/mark-read/'),

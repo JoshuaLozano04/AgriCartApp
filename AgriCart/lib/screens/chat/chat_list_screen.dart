@@ -34,12 +34,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
     try {
       final response = await _apiService.getUserConversations();
-      
+
       if (response['success'] == true) {
         setState(() {
-          _conversations = List<Map<String, dynamic>>.from(
-            response['conversations'] ?? []
-          );
+          _conversations =
+              List<Map<String, dynamic>>.from(response['conversations'] ?? []);
           _isLoading = false;
         });
       } else {
@@ -58,7 +57,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   String _formatTimestamp(dynamic timestamp) {
     if (timestamp == null || timestamp == '') return '';
-    
+
     try {
       DateTime dateTime;
       if (timestamp is String) {
@@ -68,10 +67,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
       } else {
         return '';
       }
-      
+
       final now = DateTime.now();
       final difference = now.difference(dateTime);
-      
+
       if (difference.inDays == 0) {
         // Today - show time
         return DateFormat.jm().format(dateTime);
@@ -91,7 +90,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        final currentUserId = state is AuthAuthenticated ? state.user.userId : '';
+        final currentUserId =
+            state is AuthAuthenticated ? state.user.userId : '';
 
         return Scaffold(
           appBar: AppBar(
@@ -172,7 +172,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           final unreadCount = conversation['unread_count'] ?? 0;
           final lastMessage = conversation['last_message'] ?? '';
           final lastMessageAt = conversation['last_message_at'];
-          
+
           return _buildConversationCard(
             conversation: conversation,
             otherUser: otherUser,
@@ -197,7 +197,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final conversationId = conversation['conversation_id'];
     final otherUserName = otherUser?['full_name'] ?? 'Unknown User';
     final otherUserId = otherUser?['user_id'] ?? '';
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       elevation: 1,
@@ -278,7 +278,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               ),
             ),
           );
-          
+
           // Refresh list if returning from chat
           if (result == true) {
             _loadConversations();

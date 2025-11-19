@@ -29,7 +29,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   ChatSocketService? _socketService;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  
+
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = true;
   bool _isConnected = false;
@@ -37,7 +37,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Timer? _typingTimer;
   bool _isTyping = false;
   String? _otherUserTyping;
-  
+
   // Map to track pending messages by temp_id
   final Map<String, Map<String, dynamic>> _pendingMessages = {};
 
@@ -64,21 +64,21 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     });
 
     try {
-      final response = await _apiService.getConversationMessages(widget.conversationId);
-      
+      final response =
+          await _apiService.getConversationMessages(widget.conversationId);
+
       if (response['success'] == true) {
         setState(() {
-          _messages = List<Map<String, dynamic>>.from(
-            response['messages'] ?? []
-          );
+          _messages =
+              List<Map<String, dynamic>>.from(response['messages'] ?? []);
           _isLoading = false;
         });
-        
+
         // Scroll to bottom after loading
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _scrollToBottom();
         });
-        
+
         // Mark conversation as read
         _apiService.markConversationRead(widget.conversationId);
       } else {
@@ -97,7 +97,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   void _initializeSocket() {
     _socketService = ChatSocketService(conversationId: widget.conversationId);
-    
+
     // Listen to connection status
     _socketService!.connectionStream.listen((connected) {
       if (mounted) {
@@ -106,39 +106,38 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         });
       }
     });
-    
+
     // Listen to messages
     _socketService!.messageStream.listen(_handleSocketMessage);
-    
+
     // Connect
     _socketService!.connect();
   }
 
   void _handleSocketMessage(Map<String, dynamic> data) {
     final type = data['type'];
-    
+
     switch (type) {
       case 'connection':
         debugPrint('Chat: Connected to conversation');
         break;
-        
+
       case 'chat_message':
         final message = data['message'] as Map<String, dynamic>?;
         if (message != null && mounted) {
           setState(() {
             // Remove from pending if it's our own message
             final messageId = message['message_id'];
-            _pendingMessages.removeWhere((key, value) => 
-              value['message_id'] == messageId
-            );
-            
+            _pendingMessages
+                .removeWhere((key, value) => value['message_id'] == messageId);
+
             // Add to messages list if not already present
             if (!_messages.any((m) => m['message_id'] == messageId)) {
               _messages.add(message);
             }
           });
           _scrollToBottom();
-          
+
           // Send read receipt if message is for us
           final currentUserId = _getCurrentUserId();
           if (message['receiver_id'] == currentUserId) {
@@ -146,12 +145,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           }
         }
         break;
-        
+
       case 'message_sent':
         // Acknowledgement from server
         final messageId = data['message_id'];
         final tempId = data['temp_id'];
-        
+
         if (tempId != null && _pendingMessages.containsKey(tempId)) {
           setState(() {
             // Update pending message with server message_id
@@ -163,30 +162,31 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           });
         }
         break;
-        
+
       case 'typing':
         final userId = data['user_id'];
         final isTyping = data['is_typing'] == true;
-        
+
         if (userId != _getCurrentUserId()) {
           setState(() {
             _otherUserTyping = isTyping ? widget.otherUserName : null;
           });
         }
         break;
-        
+
       case 'read_receipt':
         final messageId = data['message_id'];
         if (mounted) {
           setState(() {
-            final index = _messages.indexWhere((m) => m['message_id'] == messageId);
+            final index =
+                _messages.indexWhere((m) => m['message_id'] == messageId);
             if (index != -1) {
               _messages[index]['is_read'] = true;
             }
           });
         }
         break;
-        
+
       case 'error':
         debugPrint('Chat error: ${data['message']}');
         break;
@@ -212,15 +212,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _onMessageChanged(String text) {
+    // Trigger rebuild to update send button state
+    setState(() {});
+
     // Send typing indicator
     if (text.isNotEmpty && !_isTyping) {
       _isTyping = true;
       _socketService?.sendTyping(true);
     }
-    
+
     // Cancel previous timer
     _typingTimer?.cancel();
-    
+
     // Set new timer to stop typing indicator
     _typingTimer = Timer(const Duration(seconds: 2), () {
       if (_isTyping) {
@@ -235,15 +238,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     if (text.isEmpty) {
       return;
     }
-    
+
     final currentUserId = _getCurrentUserId();
     if (currentUserId.isEmpty) {
       return;
     }
-    
+
     // Generate temp_id for optimistic UI
     final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
-    
+
     // Create optimistic message
     final optimisticMessage = {
       'message_id': tempId,
@@ -256,21 +259,21 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       'is_read': false,
       'status': 'sending',
     };
-    
+
     setState(() {
       _messages.add(optimisticMessage);
       _pendingMessages[tempId] = optimisticMessage;
     });
-    
+
     _messageController.clear();
     _scrollToBottom();
-    
+
     // Stop typing indicator
     if (_isTyping) {
       _isTyping = false;
       _socketService?.sendTyping(false);
     }
-    
+
     // Send via WebSocket if connected, otherwise use REST API fallback
     if (_isConnected) {
       _socketService?.sendMessage(text, widget.otherUserId, tempId: tempId);
@@ -282,7 +285,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           widget.otherUserId,
           text,
         );
-        
+
         if (response['success'] == true && mounted) {
           final message = response['message'];
           setState(() {
@@ -320,7 +323,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   String _formatMessageTime(dynamic timestamp) {
     if (timestamp == null) return '';
-    
+
     try {
       DateTime dateTime;
       if (timestamp is String) {
@@ -330,7 +333,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       } else {
         return '';
       }
-      
+
       return DateFormat.jm().format(dateTime.toLocal());
     } catch (e) {
       return '';
@@ -341,24 +344,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        final currentUserId = state is AuthAuthenticated ? state.user.userId : '';
+        final currentUserId =
+            state is AuthAuthenticated ? state.user.userId : '';
 
         return Scaffold(
           appBar: AppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(widget.otherUserName),
-                if (_otherUserTyping != null)
-                  Text(
-                    'typing...',
-                    style: AppTheme.bodySmall.copyWith(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
-                  ),
-              ],
-            ),
+            title: Text(widget.otherUserName),
             actions: [
               if (!_isConnected)
                 const Padding(
@@ -381,12 +372,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     style: TextStyle(color: Colors.white, fontSize: 12),
                   ),
                 ),
-              
+
               // Messages list
               Expanded(
                 child: _buildMessagesList(currentUserId),
               ),
-              
+
               // Input area
               _buildInputArea(),
             ],
@@ -462,7 +453,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         final message = _messages[index];
         final isMe = message['sender_id'] == currentUserId;
         final status = message['status'] as String?;
-        
+
         return _buildMessageBubble(message, isMe, status);
       },
     );
@@ -476,7 +467,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final text = message['message'] ?? '';
     final timestamp = message['created_at'];
     final isRead = message['is_read'] == true;
-    
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -549,41 +540,61 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              onChanged: _onMessageChanged,
-              decoration: InputDecoration(
-                hintText: 'Type a message...',
-                hintStyle: TextStyle(color: AppTheme.textGray),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
+          // Typing indicator
+          if (_otherUserTyping != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 12, bottom: 4),
+              child: Text(
+                '$_otherUserTyping is typing...',
+                style: TextStyle(
+                  color: AppTheme.textGray,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
                 ),
               ),
-              maxLines: null,
-              textCapitalization: TextCapitalization.sentences,
             ),
-          ),
-          const SizedBox(width: 8),
-          CircleAvatar(
-            backgroundColor: _messageController.text.trim().isEmpty || !_isConnected
-                ? Colors.grey
-                : AppTheme.primaryGreen,
-            child: IconButton(
-              icon: const Icon(Icons.send, color: Colors.white, size: 20),
-              onPressed: _messageController.text.trim().isEmpty || !_isConnected
-                  ? null
-                  : _sendMessage,
-            ),
+          // Input row
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _messageController,
+                  onChanged: _onMessageChanged,
+                  decoration: InputDecoration(
+                    hintText: 'Type a message...',
+                    hintStyle: TextStyle(color: AppTheme.textGray),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                  ),
+                  maxLines: null,
+                  textCapitalization: TextCapitalization.sentences,
+                ),
+              ),
+              const SizedBox(width: 8),
+              CircleAvatar(
+                backgroundColor: _messageController.text.trim().isEmpty
+                    ? Colors.grey
+                    : AppTheme.primaryGreen,
+                child: IconButton(
+                  icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                  onPressed: _messageController.text.trim().isEmpty
+                      ? null
+                      : _sendMessage,
+                ),
+              ),
+            ],
           ),
         ],
       ),
