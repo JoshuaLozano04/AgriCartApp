@@ -16,12 +16,9 @@ class OrdersManagementScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => OrdersBloc(apiService: ApiService())
-        ..add(const LoadOrdersEvent()),
+      create: (context) =>
+          OrdersBloc(apiService: ApiService())..add(const LoadOrdersEvent()),
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Manage Orders'),
-        ),
         backgroundColor: AppTheme.backgroundGray,
         body: BlocBuilder<OrdersBloc, OrdersState>(
           builder: (context, state) {
@@ -60,7 +57,7 @@ class OrdersManagementScreen extends StatelessWidget {
               );
             } else if (state is OrdersLoaded) {
               final sellerOrders = state.orders; // Filtered by backend
-              
+
               if (sellerOrders.isEmpty) {
                 return Center(
                   child: Column(
@@ -115,7 +112,7 @@ class OrdersManagementScreen extends StatelessWidget {
   Widget _buildOrderCard(BuildContext context, Order order) {
     Color statusColor;
     IconData statusIcon;
-    
+
     switch (order.status.toLowerCase()) {
       case 'pending':
         statusColor = AppTheme.warningOrange;
@@ -211,7 +208,8 @@ class OrdersManagementScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => SellerOrderDetailScreen(orderId: order.orderId),
+                          builder: (_) =>
+                              SellerOrderDetailScreen(orderId: order.orderId),
                         ),
                       );
                     },
@@ -236,7 +234,8 @@ class OrdersManagementScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Update Order Status'),
-        content: Text('Change status from ${_formatStatus(order.status)} to ${_formatStatus(nextStatus)}?'),
+        content: Text(
+            'Change status from ${_formatStatus(order.status)} to ${_formatStatus(nextStatus)}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -284,9 +283,7 @@ class OrdersManagementScreen extends StatelessWidget {
   String _formatStatus(String status) {
     return status
         .split('_')
-        .map((word) =>
-            word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
         .join(' ');
   }
 }
-

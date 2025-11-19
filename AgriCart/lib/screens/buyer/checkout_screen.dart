@@ -38,8 +38,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return 'Cash on Delivery';
       case 'gcash':
         return 'GCash';
-      case 'bank_transfer':
-        return 'Bank Transfer';
+
       default:
         return method.toUpperCase();
     }
@@ -173,7 +172,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                             ),
                                             Text(
                                               '₱${item.total.toStringAsFixed(2)}',
-                                              style: AppTheme.bodyLarge.copyWith(
+                                              style:
+                                                  AppTheme.bodyLarge.copyWith(
                                                 fontWeight: FontWeight.w600,
                                               ),
                                             ),
@@ -231,8 +231,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                       decoration: const InputDecoration(
                                         hintText:
                                             'Enter your complete shipping address',
-                                        prefixIcon:
-                                            Icon(Icons.home_outlined),
+                                        prefixIcon: Icon(Icons.home_outlined),
                                       ),
                                       maxLines: 3,
                                       textCapitalization:
@@ -272,25 +271,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                       ],
                                     ),
                                     const SizedBox(height: 16),
-                                    ...['cod', 'gcash', 'bank_transfer']
-                                        .map((method) {
+                                    ...['cod', 'gcash'].map((method) {
                                       return Container(
-                                        margin: const EdgeInsets.only(bottom: 8),
+                                        margin:
+                                            const EdgeInsets.only(bottom: 8),
                                         decoration: BoxDecoration(
                                           border: Border.all(
-                                            color: _selectedPaymentMethod ==
-                                                    method
-                                                ? AppTheme.primaryGreen
-                                                : Colors.grey.shade300,
-                                            width: _selectedPaymentMethod ==
-                                                    method
-                                                ? 2
-                                                : 1,
+                                            color:
+                                                _selectedPaymentMethod == method
+                                                    ? AppTheme.primaryGreen
+                                                    : Colors.grey.shade300,
+                                            width:
+                                                _selectedPaymentMethod == method
+                                                    ? 2
+                                                    : 1,
                                           ),
-                                          borderRadius: BorderRadius.circular(12),
-                                          color: _selectedPaymentMethod == method
-                                              ? AppTheme.veryLightGreen
-                                              : AppTheme.white,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          color:
+                                              _selectedPaymentMethod == method
+                                                  ? AppTheme.veryLightGreen
+                                                  : AppTheme.white,
                                         ),
                                         child: RadioListTile<String>(
                                           title: Row(
@@ -354,7 +355,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 context.read<CartBloc>().add(
                                       const ClearCartEvent(),
                                     );
-                                
+
                                 if (_selectedPaymentMethod == 'cod') {
                                   // COD - just show success and go home
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -388,7 +389,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   );
                                 } else {
                                   // Online payment - open payment URL
-                                  if (state.paymentUrl != null && state.paymentUrl!.isNotEmpty) {
+                                  if (state.paymentUrl != null &&
+                                      state.paymentUrl!.isNotEmpty) {
                                     try {
                                       final uri = Uri.parse(state.paymentUrl!);
                                       // Use externalApplication mode to open in browser
@@ -400,7 +402,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         throw Exception('Could not launch URL');
                                       }
                                       // Show success message
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
                                         SnackBar(
                                           content: Row(
                                             children: [
@@ -419,10 +422,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                               ),
                                             ],
                                           ),
-                                          backgroundColor: AppTheme.successGreen,
+                                          backgroundColor:
+                                              AppTheme.successGreen,
                                           behavior: SnackBarBehavior.floating,
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                           ),
                                         ),
                                       );
@@ -430,9 +435,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         (route) => route.isFirst,
                                       );
                                     } catch (e) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
                                         SnackBar(
-                                          content: Text('Failed to open payment page: $e'),
+                                          content: Text(
+                                              'Failed to open payment page: $e'),
                                           backgroundColor: AppTheme.errorRed,
                                         ),
                                       );
@@ -440,7 +447,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Payment URL not available'),
+                                        content:
+                                            Text('Payment URL not available'),
                                         backgroundColor: AppTheme.errorRed,
                                       ),
                                     );
@@ -478,7 +486,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                                       ))
                                                   .toList(),
                                               shippingAddress:
-                                                  _addressController.text.trim(),
+                                                  _addressController.text
+                                                      .trim(),
                                               paymentMethod:
                                                   _selectedPaymentMethod,
                                               totalAmount: cart.totalAmount,
@@ -486,7 +495,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                             );
 
                                             context.read<OrdersBloc>().add(
-                                                  CreateOrderEvent(order: order),
+                                                  CreateOrderEvent(
+                                                      order: order),
                                                 );
                                           }
                                         },
@@ -501,7 +511,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         )
                                       : const Icon(Icons.check_circle_outline),
                                   label: Text(
-                                    isLoading ? 'Placing Order...' : 'Place Order',
+                                    isLoading
+                                        ? 'Placing Order...'
+                                        : 'Place Order',
                                     style: const TextStyle(fontSize: 16),
                                   ),
                                   style: ElevatedButton.styleFrom(

@@ -16,9 +16,6 @@ class AnalyticsScreen extends StatelessWidget {
       create: (context) => SellerBloc(apiService: ApiService())
         ..add(const LoadSalesAnalyticsEvent()),
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Analytics'),
-        ),
         body: BlocBuilder<SellerBloc, SellerState>(
           builder: (context, state) {
             if (state is SellerLoading) {
@@ -90,7 +87,8 @@ class AnalyticsScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             _ProductSalesBarChart(
-                              products: (analytics['top_products'] as List?) ?? const [],
+                              products: (analytics['top_products'] as List?) ??
+                                  const [],
                             ),
                           ],
                         ),
@@ -142,7 +140,9 @@ class AnalyticsScreen extends StatelessWidget {
                               ...(analytics['top_products'] as List)
                                   .map((product) => ListTile(
                                         title: Text(
-                                          (product['product_name'] ?? '').toString().isNotEmpty
+                                          (product['product_name'] ?? '')
+                                                  .toString()
+                                                  .isNotEmpty
                                               ? product['product_name']
                                               : 'Product #${product['product_id'].toString().substring(0, 8)}',
                                         ),
@@ -173,7 +173,8 @@ class AnalyticsScreen extends StatelessWidget {
 }
 
 class _ProductSalesBarChart extends StatelessWidget {
-  final List products; // expects list of maps with product_name/product_id and quantity_sold
+  final List
+      products; // expects list of maps with product_name/product_id and quantity_sold
 
   const _ProductSalesBarChart({required this.products});
 
@@ -192,7 +193,9 @@ class _ProductSalesBarChart extends StatelessWidget {
       return {'name': name, 'qty': qty};
     }).toList();
 
-    final maxQty = (items.map((e) => e['qty'] as num).fold<num>(0, (a, b) => a > b ? a : b)).toDouble();
+    final maxQty = (items
+        .map((e) => e['qty'] as num)
+        .fold<num>(0, (a, b) => a > b ? a : b)).toDouble();
 
     const double chartHeight = 240; // extra space to avoid overflow from labels
     const double barWidth = 24;
@@ -247,4 +250,3 @@ class _ProductSalesBarChart extends StatelessWidget {
     );
   }
 }
-

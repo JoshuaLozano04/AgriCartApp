@@ -42,7 +42,8 @@ class OrderDetailScreen extends StatelessWidget {
           ),
           body: BlocBuilder<OrdersBloc, OrdersState>(
             builder: (context, state) {
-              print('DEBUG OrderDetailScreen: Current state: ${state.runtimeType}');
+              print(
+                  'DEBUG OrderDetailScreen: Current state: ${state.runtimeType}');
               if (state is OrdersLoading) {
                 return const Center(
                   child: CircularProgressIndicator(
@@ -50,7 +51,8 @@ class OrderDetailScreen extends StatelessWidget {
                   ),
                 );
               } else if (state is OrdersError) {
-                print('DEBUG OrderDetailScreen: Showing error: ${state.message}');
+                print(
+                    'DEBUG OrderDetailScreen: Showing error: ${state.message}');
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -72,7 +74,8 @@ class OrderDetailScreen extends StatelessWidget {
                       const SizedBox(height: 24),
                       ElevatedButton.icon(
                         onPressed: () {
-                          print('DEBUG OrderDetailScreen: Retry button pressed');
+                          print(
+                              'DEBUG OrderDetailScreen: Retry button pressed');
                           context.read<OrdersBloc>().add(
                                 LoadOrderDetailsEvent(orderId: orderId),
                               );
@@ -84,419 +87,447 @@ class OrderDetailScreen extends StatelessWidget {
                   ),
                 );
               } else if (state is OrderDetailsLoaded) {
-              final order = state.order;
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Order status card
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: AppTheme.cardDecoration,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
+                final order = state.order;
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Order status card
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: AppTheme.cardDecoration,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      _getStatusIcon(order.status),
+                                      color: _getStatusColor(order.status),
+                                      size: 28,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Order Status',
+                                      style: AppTheme.heading3,
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _getStatusColor(order.status),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    _formatStatus(order.status),
+                                    style: const TextStyle(
+                                      color: AppTheme.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (order.trackingNumber != null) ...[
+                              const SizedBox(height: 16),
+                              const Divider(),
+                              const SizedBox(height: 12),
                               Row(
                                 children: [
                                   Icon(
-                                    _getStatusIcon(order.status),
-                                    color: _getStatusColor(order.status),
-                                    size: 28,
+                                    Icons.local_shipping_outlined,
+                                    color: AppTheme.primaryGreen,
+                                    size: 20,
                                   ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    'Order Status',
-                                    style: AppTheme.heading3,
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Tracking Number',
+                                          style: AppTheme.bodySmall.copyWith(
+                                            color: AppTheme.textGray,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          order.trackingNumber!,
+                                          style: AppTheme.bodyLarge.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Shipping address
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: AppTheme.cardDecoration,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.location_on_outlined,
+                                  color: AppTheme.primaryGreen,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: _getStatusColor(order.status),
-                                  borderRadius: BorderRadius.circular(20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Shipping Address',
+                                  style: AppTheme.heading3,
                                 ),
-                                child: Text(
-                                  _formatStatus(order.status),
-                                  style: const TextStyle(
-                                    color: AppTheme.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              order.shippingAddress,
+                              style: AppTheme.bodyLarge.copyWith(height: 1.6),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Order items
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: AppTheme.cardDecoration,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.shopping_bag_outlined,
+                                  color: AppTheme.primaryGreen,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Order Items',
+                                  style: AppTheme.heading3,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            ...order.items.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final item = entry.value;
+                              return FutureBuilder<Product?>(
+                                future: ApiService().getProduct(item.productId),
+                                builder: (context, snapshot) {
+                                  final product = snapshot.data;
+                                  return Container(
+                                    margin: EdgeInsets.only(
+                                      bottom: index < order.items.length - 1
+                                          ? 12
+                                          : 0,
+                                    ),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.backgroundGray,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 50,
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.veryLightGreen,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(
+                                            Icons.eco_outlined,
+                                            color: AppTheme.primaryGreen,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                product?.name ??
+                                                    'Product ${item.productId.substring(0, 8)}',
+                                                style:
+                                                    AppTheme.bodyLarge.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '${item.quantity} x ₱${item.price.toStringAsFixed(2)}',
+                                                style:
+                                                    AppTheme.bodySmall.copyWith(
+                                                  color: AppTheme.textGray,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Text(
+                                          '₱${item.total.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.primaryGreen,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Payment info
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: AppTheme.cardDecoration,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.payment_outlined,
+                                  color: AppTheme.primaryGreen,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Payment Information',
+                                  style: AppTheme.heading3,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _buildInfoRow(
+                              'Payment Method',
+                              _getPaymentMethodName(order.paymentMethod),
+                            ),
+                            if (order.paymentStatus != null) ...[
+                              const SizedBox(height: 12),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 120,
+                                    child: Text(
+                                      'Payment Status',
+                                      style: AppTheme.bodySmall.copyWith(
+                                        color: AppTheme.textGray,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: _getPaymentStatusColor(
+                                            order.paymentStatus!),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        _formatPaymentStatus(
+                                            order.paymentStatus!),
+                                        style: const TextStyle(
+                                          color: AppTheme.white,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
-                          ),
-                          if (order.trackingNumber != null) ...[
+                            if (order.createdAt != null) ...[
+                              const SizedBox(height: 12),
+                              _buildInfoRow(
+                                'Order Date',
+                                _formatDate(order.createdAt!),
+                              ),
+                            ],
                             const SizedBox(height: 16),
                             const Divider(),
                             const SizedBox(height: 12),
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Icon(
-                                  Icons.local_shipping_outlined,
-                                  color: AppTheme.primaryGreen,
-                                  size: 20,
+                                Text(
+                                  'Total Amount',
+                                  style: AppTheme.heading3,
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Tracking Number',
-                                        style: AppTheme.bodySmall.copyWith(
-                                          color: AppTheme.textGray,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        order.trackingNumber!,
-                                        style: AppTheme.bodyLarge.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
+                                Text(
+                                  '₱${order.totalAmount.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primaryGreen,
                                   ),
                                 ),
                               ],
                             ),
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Shipping address
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: AppTheme.cardDecoration,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.location_on_outlined,
-                                color: AppTheme.primaryGreen,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Shipping Address',
-                                style: AppTheme.heading3,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            order.shippingAddress,
-                            style: AppTheme.bodyLarge.copyWith(height: 1.6),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Order items
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: AppTheme.cardDecoration,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.shopping_bag_outlined,
-                                color: AppTheme.primaryGreen,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Order Items',
-                                style: AppTheme.heading3,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          ...order.items.asMap().entries.map((entry) {
-                            final index = entry.key;
-                            final item = entry.value;
-                            return FutureBuilder<Product?>(
-                              future: ApiService().getProduct(item.productId),
-                              builder: (context, snapshot) {
-                                final product = snapshot.data;
-                                return Container(
-                                  margin: EdgeInsets.only(
-                                    bottom: index < order.items.length - 1
-                                        ? 12
-                                        : 0,
-                                  ),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.backgroundGray,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 50,
-                                        height: 50,
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.veryLightGreen,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Icon(
-                                          Icons.eco_outlined,
-                                          color: AppTheme.primaryGreen,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              product?.name ??
-                                                  'Product ${item.productId.substring(0, 8)}',
-                                              style: AppTheme.bodyLarge.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              '${item.quantity} x ₱${item.price.toStringAsFixed(2)}',
-                                              style: AppTheme.bodySmall.copyWith(
-                                                color: AppTheme.textGray,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(
-                                        '₱${item.total.toStringAsFixed(2)}',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppTheme.primaryGreen,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            );
-                          }),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Payment info
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: AppTheme.cardDecoration,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.payment_outlined,
-                                color: AppTheme.primaryGreen,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Payment Information',
-                                style: AppTheme.heading3,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          _buildInfoRow(
-                            'Payment Method',
-                            _getPaymentMethodName(order.paymentMethod),
-                          ),
-                          if (order.paymentStatus != null) ...[
-                            const SizedBox(height: 12),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                  width: 120,
-                                  child: Text(
-                                    'Payment Status',
-                                    style: AppTheme.bodySmall.copyWith(
-                                      color: AppTheme.textGray,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _getPaymentStatusColor(order.paymentStatus!),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      _formatPaymentStatus(order.paymentStatus!),
-                                      style: const TextStyle(
-                                        color: AppTheme.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                          if (order.createdAt != null) ...[
-                            const SizedBox(height: 12),
-                            _buildInfoRow(
-                              'Order Date',
-                              _formatDate(order.createdAt!),
-                            ),
-                          ],
-                          const SizedBox(height: 16),
-                          const Divider(),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Total Amount',
-                                style: AppTheme.heading3,
-                              ),
-                              Text(
-                                '₱${order.totalAmount.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryGreen,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Pay Now button for pending online payments
-                    if (order.paymentStatus == 'pending' && 
-                        order.paymentMethod != 'cod') ...[
-                      BlocBuilder<OrdersBloc, OrdersState>(
-                        builder: (context, state) {
-                          final isLoading = state is OrdersLoading;
-                          return SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: isLoading ? null : () async {
-                                // Get payment URL from backend
-                                try {
-                                  final paymentResponse = await ApiService().getPayment(order.orderId);
-                                  if (paymentResponse['success'] == true) {
-                                    final paymentUrl = paymentResponse['payment']?['payment_url'];
-                                    if (paymentUrl != null && paymentUrl.isNotEmpty) {
-                                      final uri = Uri.parse(paymentUrl);
-                                      if (await canLaunchUrl(uri)) {
-                                        await launchUrl(
-                                          uri,
-                                          mode: LaunchMode.externalApplication,
-                                        );
-                                        // Refresh order details after payment
-                                        Future.delayed(const Duration(seconds: 2), () {
-                                          context.read<OrdersBloc>().add(
-                                                LoadOrderDetailsEvent(orderId: order.orderId),
-                                              );
-                                        });
-                                      } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Cannot open payment URL'),
-                                            backgroundColor: AppTheme.errorRed,
-                                          ),
-                                        );
-                                      }
-                                    } else {
-                                      // Create new payment if URL doesn't exist
-                                      context.read<OrdersBloc>().add(
-                                            CreatePaymentEvent(
-                                              orderId: order.orderId,
-                                              paymentMethod: order.paymentMethod,
-                                              amount: order.totalAmount,
+                      const SizedBox(height: 16),
+                      // Pay Now button for pending online payments
+                      if (order.paymentStatus == 'pending' &&
+                          order.paymentMethod != 'cod') ...[
+                        BlocBuilder<OrdersBloc, OrdersState>(
+                          builder: (context, state) {
+                            final isLoading = state is OrdersLoading;
+                            return SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: isLoading
+                                    ? null
+                                    : () async {
+                                        // Get payment URL from backend
+                                        try {
+                                          final paymentResponse =
+                                              await ApiService()
+                                                  .getPayment(order.orderId);
+                                          if (paymentResponse['success'] ==
+                                              true) {
+                                            final paymentUrl =
+                                                paymentResponse['payment']
+                                                    ?['payment_url'];
+                                            if (paymentUrl != null &&
+                                                paymentUrl.isNotEmpty) {
+                                              final uri = Uri.parse(paymentUrl);
+                                              if (await canLaunchUrl(uri)) {
+                                                await launchUrl(
+                                                  uri,
+                                                  mode: LaunchMode
+                                                      .externalApplication,
+                                                );
+                                                // Refresh order details after payment
+                                                Future.delayed(
+                                                    const Duration(seconds: 2),
+                                                    () {
+                                                  context
+                                                      .read<OrdersBloc>()
+                                                      .add(
+                                                        LoadOrderDetailsEvent(
+                                                            orderId:
+                                                                order.orderId),
+                                                      );
+                                                });
+                                              } else {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                        'Cannot open payment URL'),
+                                                    backgroundColor:
+                                                        AppTheme.errorRed,
+                                                  ),
+                                                );
+                                              }
+                                            } else {
+                                              // Create new payment if URL doesn't exist
+                                              context.read<OrdersBloc>().add(
+                                                    CreatePaymentEvent(
+                                                      orderId: order.orderId,
+                                                      paymentMethod:
+                                                          order.paymentMethod,
+                                                      amount: order.totalAmount,
+                                                    ),
+                                                  );
+                                            }
+                                          } else {
+                                            // Create new payment
+                                            context.read<OrdersBloc>().add(
+                                                  CreatePaymentEvent(
+                                                    orderId: order.orderId,
+                                                    paymentMethod:
+                                                        order.paymentMethod,
+                                                    amount: order.totalAmount,
+                                                  ),
+                                                );
+                                          }
+                                        } catch (e) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text('Error: $e'),
+                                              backgroundColor:
+                                                  AppTheme.errorRed,
                                             ),
                                           );
-                                    }
-                                  } else {
-                                    // Create new payment
-                                    context.read<OrdersBloc>().add(
-                                          CreatePaymentEvent(
-                                            orderId: order.orderId,
-                                            paymentMethod: order.paymentMethod,
-                                            amount: order.totalAmount,
-                                          ),
-                                        );
-                                  }
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Error: $e'),
-                                      backgroundColor: AppTheme.errorRed,
-                                    ),
-                                  );
-                                }
-                              },
-                              icon: isLoading
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: AppTheme.white,
-                                      ),
-                                    )
-                                  : const Icon(Icons.payment),
-                              label: Text(isLoading ? 'Processing...' : 'Pay Now'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryGreen,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                        }
+                                      },
+                                icon: isLoading
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: AppTheme.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.payment),
+                                label: Text(
+                                    isLoading ? 'Processing...' : 'Pay Now'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryGreen,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Complete your payment using ${_getPaymentMethodName(order.paymentMethod)}',
-                        style: AppTheme.bodySmall.copyWith(
-                          color: AppTheme.textGray,
+                            );
+                          },
                         ),
-                        textAlign: TextAlign.center,
-                      ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Complete your payment using ${_getPaymentMethodName(order.paymentMethod)}',
+                          style: AppTheme.bodySmall.copyWith(
+                            color: AppTheme.textGray,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                      const SizedBox(height: 20),
                     ],
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              );
-            }
-            return const SizedBox();
-          },
-        ),
+                  ),
+                );
+              }
+              return const SizedBox();
+            },
+          ),
         ),
       ),
     );
@@ -568,8 +599,7 @@ class OrderDetailScreen extends StatelessWidget {
   String _formatStatus(String status) {
     return status
         .split('_')
-        .map((word) =>
-            word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
         .join(' ');
   }
 
@@ -579,8 +609,7 @@ class OrderDetailScreen extends StatelessWidget {
         return 'Cash on Delivery';
       case 'gcash':
         return 'GCash';
-      case 'bank_transfer':
-        return 'Bank Transfer';
+
       default:
         return method.toUpperCase();
     }

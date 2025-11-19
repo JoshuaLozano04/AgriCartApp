@@ -21,9 +21,6 @@ class ProductsManagementScreen extends StatelessWidget {
       create: (context) => SellerBloc(apiService: ApiService())
         ..add(LoadSellerProductsEvent(sellerId: sellerId)),
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Manage Products'),
-        ),
         backgroundColor: AppTheme.backgroundGray,
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () {
@@ -39,7 +36,9 @@ class ProductsManagementScreen extends StatelessWidget {
         ),
         body: BlocConsumer<SellerBloc, SellerState>(
           listener: (context, state) {
-            if (state is ProductCreated || state is ProductUpdated || state is ProductDeleted) {
+            if (state is ProductCreated ||
+                state is ProductUpdated ||
+                state is ProductDeleted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
@@ -53,7 +52,9 @@ class ProductsManagementScreen extends StatelessWidget {
                 ),
               );
               // Reload products
-              context.read<SellerBloc>().add(LoadSellerProductsEvent(sellerId: sellerId));
+              context
+                  .read<SellerBloc>()
+                  .add(LoadSellerProductsEvent(sellerId: sellerId));
             } else if (state is SellerError) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -130,7 +131,8 @@ class ProductsManagementScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => AddProductScreen(sellerId: sellerId),
+                              builder: (context) =>
+                                  AddProductScreen(sellerId: sellerId),
                             ),
                           );
                         },
@@ -153,7 +155,8 @@ class ProductsManagementScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.65, // Further reduced to give more vertical space
+                    childAspectRatio:
+                        0.65, // Further reduced to give more vertical space
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                   ),
@@ -183,7 +186,8 @@ class ProductsManagementScreen extends StatelessWidget {
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: () => _showProductOptions(context, product),
+                              onTap: () =>
+                                  _showProductOptions(context, product),
                               borderRadius: BorderRadius.circular(20),
                               child: Container(
                                 padding: const EdgeInsets.all(6),
@@ -223,7 +227,7 @@ class ProductsManagementScreen extends StatelessWidget {
   void _showProductOptions(BuildContext context, product) {
     // Capture SellerBloc from parent context before showing bottom sheet
     final sellerBloc = context.read<SellerBloc>();
-    
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -295,8 +299,8 @@ class ProductsManagementScreen extends StatelessWidget {
           TextButton(
             onPressed: () {
               sellerBloc.add(
-                    DeleteProductEvent(productId: product.productId),
-                  );
+                DeleteProductEvent(productId: product.productId),
+              );
               Navigator.pop(dialogContext);
             },
             child: Text(

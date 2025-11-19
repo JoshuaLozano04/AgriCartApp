@@ -40,8 +40,8 @@ class OrdersListScreen extends StatelessWidget {
     }
 
     return BlocProvider(
-      create: (context) => OrdersBloc(apiService: ApiService())
-        ..add(const LoadOrdersEvent()),
+      create: (context) =>
+          OrdersBloc(apiService: ApiService())..add(const LoadOrdersEvent()),
       child: Scaffold(
         backgroundColor: AppTheme.backgroundGray,
         body: BlocBuilder<OrdersBloc, OrdersState>(
@@ -134,7 +134,7 @@ class OrdersListScreen extends StatelessWidget {
   Widget _buildOrderCard(BuildContext context, Order order) {
     Color statusColor;
     IconData statusIcon;
-    
+
     switch (order.status.toLowerCase()) {
       case 'pending':
         statusColor = AppTheme.warningOrange;
@@ -284,8 +284,7 @@ class OrdersListScreen extends StatelessWidget {
   String _formatStatus(String status) {
     return status
         .split('_')
-        .map((word) =>
-            word[0].toUpperCase() + word.substring(1).toLowerCase())
+        .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
         .join(' ');
   }
 
@@ -295,8 +294,7 @@ class OrdersListScreen extends StatelessWidget {
         return 'Cash on Delivery';
       case 'gcash':
         return 'GCash';
-      case 'bank_transfer':
-        return 'Bank Transfer';
+
       default:
         return method.toUpperCase();
     }

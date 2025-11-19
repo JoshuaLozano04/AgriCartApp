@@ -62,7 +62,7 @@ def create_payment(request):
         }, status=status.HTTP_400_BAD_REQUEST)
     
     # Validate payment method
-    valid_methods = ['cod', 'gcash', 'bank_transfer']
+    valid_methods = ['cod', 'gcash']
     if payment_method not in valid_methods:
         return Response({
             'success': False,
@@ -137,7 +137,7 @@ def create_payment(request):
             # Map payment method to PayMongo source type
             paymongo_type_map = {
                 'gcash': 'gcash',
-                'bank_transfer': 'dob'
+
             }
             paymongo_type = paymongo_type_map.get(payment_method, 'gcash')
             

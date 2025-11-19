@@ -94,9 +94,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
             state is AuthAuthenticated ? state.user.userId : '';
 
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Messages'),
-          ),
           body: _buildBody(currentUserId),
         );
       },

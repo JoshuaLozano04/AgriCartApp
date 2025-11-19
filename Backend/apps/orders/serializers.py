@@ -17,7 +17,7 @@ class OrderSerializer(serializers.Serializer):
     # seller_id will be extracted from items' products
     items = OrderItemSerializer(many=True)
     shipping_address = serializers.CharField()
-    payment_method = serializers.ChoiceField(choices=['cod', 'gcash', 'bank_transfer'])
+    payment_method = serializers.ChoiceField(choices=['cod', 'gcash'])
     total_amount = serializers.FloatField(min_value=0)
 
 

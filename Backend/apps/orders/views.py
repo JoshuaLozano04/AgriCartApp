@@ -398,6 +398,11 @@ def update_order_status(request, order_id):
                     data['tracking_number'], max_length=100
                 )
             
+            # If order is delivered and payment method is COD, mark as paid
+            if new_status == 'delivered' and order.get('payment_method') == 'cod':
+                if order.get('payment_status') == 'pending':
+                    update_data['payment_status'] = 'paid'
+            
             # Update order
             success = MongoDBService.update_document('orders', order_id, update_data)
             if success:

@@ -8,6 +8,7 @@ import '../../widgets/app_drawer.dart';
 import '../chat/chat_list_screen.dart';
 import 'seller_dashboard_screen.dart';
 import 'products_management_screen.dart';
+import 'orders_management_screen.dart';
 import 'analytics_screen.dart';
 
 class SellerMainScreen extends StatefulWidget {
@@ -30,6 +31,7 @@ class _SellerMainScreenState extends State<SellerMainScreen> {
         final List<Widget> screens = [
           SellerDashboardScreen(sellerId: sellerId),
           ProductsManagementScreen(sellerId: sellerId),
+          OrdersManagementScreen(sellerId: sellerId),
           AnalyticsScreen(sellerId: sellerId),
           const ChatListScreen(),
         ];
@@ -69,6 +71,11 @@ class _SellerMainScreenState extends State<SellerMainScreen> {
                 label: 'Products',
               ),
               BottomNavigationBarItem(
+                icon: Icon(Icons.receipt_long_outlined),
+                activeIcon: Icon(Icons.receipt_long),
+                label: 'Orders',
+              ),
+              BottomNavigationBarItem(
                 icon: Icon(Icons.analytics_outlined),
                 activeIcon: Icon(Icons.analytics),
                 label: 'Analytics',
@@ -92,8 +99,10 @@ class _SellerMainScreenState extends State<SellerMainScreen> {
       case 1:
         return 'Manage Products';
       case 2:
-        return 'Analytics';
+        return 'Manage Orders';
       case 3:
+        return 'Analytics';
+      case 4:
         return 'Messages';
       default:
         return 'AgriCart';

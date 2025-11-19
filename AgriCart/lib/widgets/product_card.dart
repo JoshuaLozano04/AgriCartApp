@@ -39,10 +39,9 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = product.imagePaths.isNotEmpty
-        ? product.imagePaths.first
-        : null;
-    
+    final imageUrl =
+        product.imagePaths.isNotEmpty ? product.imagePaths.first : null;
+
     // If imageUrl is relative, prepend base URL
     final fullImageUrl = imageUrl != null && !imageUrl.startsWith('http')
         ? '${ApiService.baseUrl.replaceAll('/api', '')}$imageUrl'
@@ -63,9 +62,11 @@ class ProductCard extends StatelessWidget {
           children: [
             // Image
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
               child: AspectRatio(
-                aspectRatio: 1.3, // Increased to reduce image height and give more space for content
+                aspectRatio:
+                    1.3, // Increased to reduce image height and give more space for content
                 child: fullImageUrl != null
                     ? CachedNetworkImage(
                         imageUrl: fullImageUrl,
@@ -100,100 +101,100 @@ class ProductCard extends StatelessWidget {
             ),
             // Product Info
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                    // Category badge
-                    Row(
-                      children: [
-                        Text(
-                          _getCategoryIcon(product.category),
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                        const SizedBox(width: 3),
-                        Expanded(
-                          child: Text(
-                            _getCategoryName(product.category),
-                            style: AppTheme.bodySmall.copyWith(
-                              color: AppTheme.primaryGreen,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 10,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    // Product name
-                    Text(
-                      product.name,
-                      style: AppTheme.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13, // Reduced further
+                  // Category badge
+                  Row(
+                    children: [
+                      Text(
+                        _getCategoryIcon(product.category),
+                        style: const TextStyle(fontSize: 11),
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 3),
-                    // Price
-                    Text(
-                      '₱${product.price.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 15, // Reduced further
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryGreen,
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                          _getCategoryName(product.category),
+                          style: AppTheme.bodySmall.copyWith(
+                            color: AppTheme.primaryGreen,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 10,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  // Product name
+                  Text(
+                    product.name,
+                    style: AppTheme.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13, // Reduced further
                     ),
-                    const SizedBox(height: 3),
-                    // Location and quantity - more compact
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on_outlined,
-                          size: 11,
-                          color: AppTheme.textGray,
-                        ),
-                        const SizedBox(width: 3),
-                        Expanded(
-                          child: Text(
-                            product.location,
-                            style: AppTheme.bodySmall.copyWith(fontSize: 10),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  // Price
+                  Text(
+                    '₱${product.price.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 15, // Reduced further
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryGreen,
                     ),
-                    const SizedBox(height: 1),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 11,
-                          color: AppTheme.textGray,
+                  ),
+                  const SizedBox(height: 2),
+                  // Location and quantity - more compact
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 11,
+                        color: AppTheme.textGray,
+                      ),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                          product.location,
+                          style: AppTheme.bodySmall.copyWith(fontSize: 10),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(width: 3),
-                        Flexible(
-                          child: Text(
-                            '${product.quantity} ${product.unit}',
-                            style: AppTheme.bodySmall.copyWith(fontSize: 10),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 1),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 11,
+                        color: AppTheme.textGray,
+                      ),
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(
+                          '${product.quantity} ${product.unit}',
+                          style: AppTheme.bodySmall.copyWith(fontSize: 10),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
+            ),
           ],
         ),
       ),
     );
   }
 }
-
