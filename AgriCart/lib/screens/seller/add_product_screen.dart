@@ -160,11 +160,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           decoration: const InputDecoration(
                             labelText: 'Unit',
                             border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 16),
                           ),
+                          isExpanded: true,
                           items: const [
-                            DropdownMenuItem(value: 'piece', child: Text('Piece')),
+                            DropdownMenuItem(
+                                value: 'piece', child: Text('Piece')),
+                            DropdownMenuItem(
+                                value: 'pack', child: Text('Pack')),
                             DropdownMenuItem(value: 'kg', child: Text('Kg')),
-                            DropdownMenuItem(value: 'liter', child: Text('Liter')),
+                            DropdownMenuItem(
+                                value: 'liter', child: Text('Liter')),
                           ],
                           onChanged: (value) {
                             setState(() {
@@ -241,8 +248,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             context.read<SellerBloc>().add(
                                   CreateProductEvent(
                                     product: product,
-                                    imagePaths:
-                                        _selectedImages.map((e) => e.path).toList(),
+                                    imagePaths: _selectedImages
+                                        .map((e) => e.path)
+                                        .toList(),
                                   ),
                                 );
                           }
@@ -264,4 +272,3 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 }
-

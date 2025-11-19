@@ -210,7 +210,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                       decoration: const InputDecoration(
                                         labelText: 'Unit',
                                         border: OutlineInputBorder(),
+                                        contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 16),
                                       ),
+                                      isExpanded: true,
                                       items: const [
                                         DropdownMenuItem(
                                             value: 'piece',
@@ -272,7 +275,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                 decoration: const InputDecoration(
                                   labelText: 'Unit',
                                   border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 16),
                                 ),
+                                isExpanded: true,
                                 items: const [
                                   DropdownMenuItem(
                                       value: 'piece', child: Text('Piece')),
