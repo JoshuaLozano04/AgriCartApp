@@ -5,9 +5,7 @@ import '../../bloc/seller/seller_event.dart';
 import '../../bloc/seller/seller_state.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
-import 'products_management_screen.dart';
-import 'analytics_screen.dart';
-import 'orders_management_screen.dart';
+// ...unused imports removed...
 
 class SellerDashboardScreen extends StatelessWidget {
   final String sellerId;
@@ -27,7 +25,9 @@ class SellerDashboardScreen extends StatelessWidget {
               final analytics = state.analytics;
               return RefreshIndicator(
                 onRefresh: () async {
-                  context.read<SellerBloc>().add(const LoadSalesAnalyticsEvent());
+                  context
+                      .read<SellerBloc>()
+                      .add(const LoadSalesAnalyticsEvent());
                   await Future.delayed(const Duration(milliseconds: 500));
                 },
                 color: AppTheme.primaryGreen,
@@ -70,7 +70,8 @@ class SellerDashboardScreen extends StatelessWidget {
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Seller Dashboard',
@@ -82,7 +83,8 @@ class SellerDashboardScreen extends StatelessWidget {
                                       Text(
                                         'Manage your farm products',
                                         style: AppTheme.bodyMedium.copyWith(
-                                          color: AppTheme.white.withOpacity(0.9),
+                                          color:
+                                              AppTheme.white.withOpacity(0.9),
                                         ),
                                       ),
                                     ],
@@ -147,63 +149,7 @@ class SellerDashboardScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      // Quick actions
-                      Text(
-                        'Quick Actions',
-                        style: AppTheme.heading3,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildActionCard(
-                        context,
-                        'Manage Products',
-                        'Add, edit, or remove your products',
-                        Icons.inventory_2_outlined,
-                        () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ProductsManagementScreen(
-                                sellerId: sellerId,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      _buildActionCard(
-                        context,
-                        'Manage Orders',
-                        'View and update order status',
-                        Icons.receipt_long_outlined,
-                        () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => OrdersManagementScreen(
-                                sellerId: sellerId,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      _buildActionCard(
-                        context,
-                        'View Analytics',
-                        'See detailed sales insights',
-                        Icons.analytics_outlined,
-                        () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AnalyticsScreen(
-                                sellerId: sellerId,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 20),
+                      // ...Quick actions removed...
                     ],
                   ),
                 ),
@@ -233,7 +179,9 @@ class SellerDashboardScreen extends StatelessWidget {
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
                       onPressed: () {
-                        context.read<SellerBloc>().add(const LoadSalesAnalyticsEvent());
+                        context
+                            .read<SellerBloc>()
+                            .add(const LoadSalesAnalyticsEvent());
                       },
                       icon: const Icon(Icons.refresh),
                       label: const Text('Retry'),
@@ -300,63 +248,5 @@ class SellerDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionCard(
-    BuildContext context,
-    String title,
-    String subtitle,
-    IconData icon,
-    VoidCallback onTap,
-  ) {
-    return Container(
-      decoration: AppTheme.cardDecoration,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.veryLightGreen,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  icon,
-                  color: AppTheme.primaryGreen,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: AppTheme.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: AppTheme.bodySmall.copyWith(
-                        color: AppTheme.textGray,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: AppTheme.textGray,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+// ...unused _buildActionCard function removed...
 }
