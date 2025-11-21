@@ -11,6 +11,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from utils.mongodb_service import MongoDBService
 from utils.notification_service import NotificationService
+from utils.s3_service import upload_file_to_s3
 from .serializers import ProductSerializer, ProductListSerializer
 import uuid
 import os
@@ -81,10 +82,6 @@ def create_product(request):
         if image_files:
             print(f"DEBUG: Processing {len(image_files)} image file(s)")
             
-            # Ensure uploads/products directory exists
-            products_dir = os.path.join(settings.MEDIA_ROOT, 'uploads', 'products')
-            os.makedirs(products_dir, exist_ok=True)
-            
             for idx, image_file in enumerate(image_files):
                 try:
                     print(f"DEBUG: Processing image {idx + 1}/{len(image_files)}")
@@ -122,22 +119,19 @@ def create_product(request):
                     image_file.seek(0)  # Ensure we're at the beginning of the file
                     file_content = image_file.read()
                     
-                    # Save to media/uploads/products/
-                    media_path = f"uploads/products/{unique_filename}"
-                    saved_path = default_storage.save(media_path, ContentFile(file_content))
-                    
-                    # Construct full URL path that can be accessed via HTTP
-                    # saved_path is relative to MEDIA_ROOT, so we prepend MEDIA_URL
-                    # This creates a path like: /media/uploads/products/{filename}
-                    # The Django static file serving will make it accessible at:
-                    # http://server:port/media/uploads/products/{filename}
-                    image_url = f"{settings.MEDIA_URL}{saved_path}"
-                    image_paths.append(image_url)
-                    print(f"DEBUG: Successfully saved image")
-                    print(f"DEBUG:   - File saved to: {os.path.join(settings.MEDIA_ROOT, saved_path)}")
-                    print(f"DEBUG:   - Saved path (relative): {saved_path}")
-                    print(f"DEBUG:   - Image URL stored: {image_url}")
-                    print(f"DEBUG:   - Full URL would be: http://{request.get_host()}{image_url}")
+                    # Upload to AWS S3
+                    try:
+                        # Create a file-like object from bytes
+                        from io import BytesIO
+                        file_obj = BytesIO(file_content)
+                        s3_url = upload_file_to_s3(file_obj, unique_filename, folder='products')
+                        image_paths.append(s3_url)
+                        print(f"DEBUG: Successfully uploaded image to S3")
+                        print(f"DEBUG:   - Filename: {unique_filename}")
+                        print(f"DEBUG:   - S3 URL: {s3_url}")
+                    except Exception as s3_error:
+                        print(f"ERROR: Failed to upload to S3: {str(s3_error)}")
+                        raise
                 except Exception as e:
                     print(f"ERROR: Failed to save image {image_file.name}: {str(e)}")
                     import traceback
@@ -399,10 +393,6 @@ def update_product(request, product_id):
             image_files = request.FILES.getlist('images')
             print(f"DEBUG Update: Received {len(image_files)} new image file(s)")
             
-            # Ensure uploads/products directory exists
-            products_dir = os.path.join(settings.MEDIA_ROOT, 'uploads', 'products')
-            os.makedirs(products_dir, exist_ok=True)
-            
             for image_file in image_files:
                 try:
                     # Validate file is an image
@@ -419,14 +409,16 @@ def update_product(request, product_id):
                     image_file.seek(0)
                     file_content = image_file.read()
                     
-                    # Save to media/uploads/products/
-                    media_path = f"uploads/products/{unique_filename}"
-                    saved_path = default_storage.save(media_path, ContentFile(file_content))
-                    
-                    # Construct full URL path
-                    image_url = f"{settings.MEDIA_URL}{saved_path}"
-                    new_image_paths.append(image_url)
-                    print(f"DEBUG Update: Successfully saved new image: {saved_path} -> {image_url}")
+                    # Upload to AWS S3
+                    try:
+                        from io import BytesIO
+                        file_obj = BytesIO(file_content)
+                        s3_url = upload_file_to_s3(file_obj, unique_filename, folder='products')
+                        new_image_paths.append(s3_url)
+                        print(f"DEBUG Update: Successfully uploaded new image to S3: {unique_filename} -> {s3_url}")
+                    except Exception as s3_error:
+                        print(f"ERROR Update: Failed to upload to S3: {str(s3_error)}")
+                        raise
                 except Exception as e:
                     print(f"ERROR Update: Failed to save image {image_file.name}: {str(e)}")
                     import traceback
