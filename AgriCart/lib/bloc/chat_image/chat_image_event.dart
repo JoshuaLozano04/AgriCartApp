@@ -22,3 +22,11 @@ class ChatImageRetryRequested extends ChatImageEvent {
   @override
   List<Object?> get props => [localPath, receiverId];
 }
+
+class ChatImageUploadRequested extends ChatImageEvent {
+  final String localPath;
+  final String receiverId;
+  const ChatImageUploadRequested({required this.localPath, required this.receiverId});
+  @override
+  List<Object?> get props => [localPath, receiverId];
+}

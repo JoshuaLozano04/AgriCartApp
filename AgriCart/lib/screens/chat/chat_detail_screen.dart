@@ -35,6 +35,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   late final ChatImageBloc _chatImageBloc;
+  final ImagePicker _imagePicker = ImagePicker();
 
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = true;
@@ -63,6 +64,27 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _socketService?.dispose();
     _chatImageBloc.close();
     super.dispose();
+  }
+
+  Future<void> _onAttachSelected(String value) async {
+    final bloc = _chatImageBloc;
+    if (bloc.state is ChatImageUploading) return;
+
+    try {
+      final ImageSource src = value == 'camera' ? ImageSource.camera : ImageSource.gallery;
+      final picked = await _imagePicker.pickImage(
+        source: src,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+      bloc.add(ChatImageUploadRequested(localPath: picked.path, receiverId: widget.otherUserId));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Image pick failed: $e'), backgroundColor: Colors.red));
+      }
+    }
   }
 
   Future<void> _loadMessages() async {
@@ -749,19 +771,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   },
                 ),
                 onSelected: (value) {
-                  final bloc = context.read<ChatImageBloc>();
-                  if (bloc.state is ChatImageUploading) return;
-                  if (value == 'gallery') {
-                    bloc.add(ChatImagePickRequested(source: ImageSource.gallery, receiverId: widget.otherUserId));
-                  } else if (value == 'camera') {
-                    bloc.add(ChatImagePickRequested(source: ImageSource.camera, receiverId: widget.otherUserId));
-                  }
+                  _onAttachSelected(value);
                 },
                 itemBuilder: (c) => [
                   const PopupMenuItem(value: 'camera', child: ListTile(leading: Icon(Icons.photo_camera), title: Text('Camera'))),
                   const PopupMenuItem(value: 'gallery', child: ListTile(leading: Icon(Icons.photo_library), title: Text('Gallery'))),
                 ],
               ),
+
               Expanded(
                 child: TextField(
                   controller: _messageController,

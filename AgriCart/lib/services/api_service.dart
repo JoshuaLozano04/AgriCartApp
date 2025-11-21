@@ -349,11 +349,24 @@ class ApiService {
       Uri.parse('$baseUrl/messages/upload-image/'),
     );
     request.headers.addAll(headers);
-    request.files.add(
-      await http.MultipartFile.fromPath('image', imageFile.path),
-    );
+    // Add file
+    try {
+      final multipartFile = await http.MultipartFile.fromPath('image', imageFile.path);
+      request.files.add(multipartFile);
+    } catch (e) {
+      debugPrint('API Service: Failed to attach multipart file: $e');
+      rethrow;
+    }
+
+    // Debug logging to help diagnose 404s
+    debugPrint('API Service: Uploading chat image to ${request.url}');
+    debugPrint('API Service: Request headers: ${request.headers}');
+    debugPrint('API Service: Files count: ${request.files.length}');
+
     final streamed = await request.send();
     final resp = await http.Response.fromStream(streamed);
+    debugPrint('API Service: Upload response status: ${resp.statusCode}');
+    debugPrint('API Service: Upload response body: ${resp.body}');
     return _handleResponse(resp);
   }
 

@@ -14,6 +14,7 @@ class ChatImageBloc extends Bloc<ChatImageEvent, ChatImageState> {
   ChatImageBloc({required this.apiService}) : super(ChatImageInitial()) {
     on<ChatImagePickRequested>(_onPickRequested);
     on<ChatImageRetryRequested>(_onRetryRequested);
+    on<ChatImageUploadRequested>(_onUploadRequested);
   }
 
   Future<void> _onPickRequested(ChatImagePickRequested event, Emitter<ChatImageState> emit) async {
@@ -62,6 +63,32 @@ class ChatImageBloc extends Bloc<ChatImageEvent, ChatImageState> {
       }
       final sendResp = await apiService.sendImageMessage(event.receiverId, imageUrl);
       if (sendResp['status'] != 'success') {
+        emit(ChatImageUploadFailure(localPath: event.localPath, error: 'Message send failed'));
+        return;
+      }
+      emit(ChatImageUploadSuccess(imageUrl));
+      emit(ChatImageInitial());
+    } catch (e) {
+      emit(ChatImageUploadFailure(localPath: event.localPath, error: e.toString()));
+    }
+  }
+
+  Future<void> _onUploadRequested(ChatImageUploadRequested event, Emitter<ChatImageState> emit) async {
+    emit(ChatImageUploading(event.localPath));
+    try {
+      final file = File(event.localPath);
+      if (!file.existsSync()) {
+        emit(ChatImageUploadFailure(localPath: event.localPath, error: 'Local file missing'));
+        return;
+      }
+      final uploadResp = await apiService.uploadChatImage(file);
+      final imageUrl = uploadResp['image_url'] as String?;
+      if (imageUrl == null) {
+        emit(ChatImageUploadFailure(localPath: event.localPath, error: 'No image_url in response'));
+        return;
+      }
+      final sendResp = await apiService.sendImageMessage(event.receiverId, imageUrl);
+      if (sendResp['status'] != 'success' && sendResp['success'] != true) {
         emit(ChatImageUploadFailure(localPath: event.localPath, error: 'Message send failed'));
         return;
       }
