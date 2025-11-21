@@ -32,6 +32,12 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0,192
 
 # Application definition
 
+# AWS S3 configuration
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default='')
+AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='')
+AWS_S3_BUCKET_NAME = config('AWS_S3_BUCKET_NAME', default='')
+AWS_S3_REGION = config('AWS_S3_REGION', default='us-east-1')
+
 INSTALLED_APPS = [
     'daphne',  # ASGI server must be first
     'django.contrib.admin',

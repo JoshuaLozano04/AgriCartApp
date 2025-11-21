@@ -327,16 +327,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
                           itemCount: _existingImageUrls.length,
                           itemBuilder: (context, index) {
                             final imageUrl = _existingImageUrls[index];
-                            final fullUrl = !imageUrl.startsWith('http')
-                                ? '${ApiService.baseUrl.replaceAll('/api', '')}$imageUrl'
-                                : imageUrl;
-
                             return Padding(
                               padding: const EdgeInsets.all(4.0),
                               child: Stack(
                                 children: [
                                   CachedNetworkImage(
-                                    imageUrl: fullUrl,
+                                    imageUrl: imageUrl,
                                     width: 100,
                                     height: 100,
                                     fit: BoxFit.cover,

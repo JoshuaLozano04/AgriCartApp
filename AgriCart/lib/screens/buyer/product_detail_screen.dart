@@ -105,11 +105,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ? product.imagePaths
                   : <String>[];
 
-              // Convert relative paths to full URLs
-              final imageUrls = imagePaths.map((path) {
-                if (path.startsWith('http')) return path;
-                return '${ApiService.baseUrl.replaceAll('/api', '')}$path';
-              }).toList();
+              // Use S3 URLs directly
+              final imageUrls = imagePaths;
 
               return Column(
                 children: [

@@ -15,3 +15,6 @@ daphne==4.0.0
 redis==5.0.1
 gunicorn==21.2.0
 whitenoise==6.6.0
+boto3==1.34.0
+gunicorn==21.2.0
+whitenoise==6.6.0
