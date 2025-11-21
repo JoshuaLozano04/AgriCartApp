@@ -124,7 +124,9 @@ def create_product(request):
                         # Create a file-like object from bytes
                         from io import BytesIO
                         file_obj = BytesIO(file_content)
-                        s3_url = upload_file_to_s3(file_obj, unique_filename, folder='products')
+                        # Get content type from original file
+                        img_content_type = getattr(image_file, 'content_type', 'image/jpeg')
+                        s3_url = upload_file_to_s3(file_obj, unique_filename, folder='products', content_type=img_content_type)
                         image_paths.append(s3_url)
                         print(f"DEBUG: Successfully uploaded image to S3")
                         print(f"DEBUG:   - Filename: {unique_filename}")
@@ -413,7 +415,9 @@ def update_product(request, product_id):
                     try:
                         from io import BytesIO
                         file_obj = BytesIO(file_content)
-                        s3_url = upload_file_to_s3(file_obj, unique_filename, folder='products')
+                        # Get content type from original file
+                        img_content_type = getattr(image_file, 'content_type', 'image/jpeg')
+                        s3_url = upload_file_to_s3(file_obj, unique_filename, folder='products', content_type=img_content_type)
                         new_image_paths.append(s3_url)
                         print(f"DEBUG Update: Successfully uploaded new image to S3: {unique_filename} -> {s3_url}")
                     except Exception as s3_error:

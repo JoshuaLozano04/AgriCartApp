@@ -14,9 +14,15 @@ s3_client = boto3.client(
     region_name=AWS_S3_REGION
 )
 
-def upload_file_to_s3(file_obj, filename, folder='products'):
+def upload_file_to_s3(file_obj, filename, folder='products', content_type='image/jpeg'):
     """
     Uploads a file object to S3 and returns the public URL.
+    
+    Args:
+        file_obj: File-like object to upload
+        filename: Name for the file in S3
+        folder: Folder path in S3 bucket
+        content_type: MIME type of the file
     """
     key = f"{folder}/{filename}"
     try:
@@ -24,7 +30,7 @@ def upload_file_to_s3(file_obj, filename, folder='products'):
             file_obj,
             AWS_S3_BUCKET_NAME,
             key,
-            ExtraArgs={"ACL": "public-read", "ContentType": file_obj.content_type}
+            ExtraArgs={"ContentType": content_type}
         )
         url = f"https://{AWS_S3_BUCKET_NAME}.s3.{AWS_S3_REGION}.amazonaws.com/{key}"
         return url
