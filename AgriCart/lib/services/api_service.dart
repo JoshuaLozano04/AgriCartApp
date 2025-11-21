@@ -213,7 +213,10 @@ class ApiService {
   }
 
   String getImageUrl(String imageId) {
-    return '$imageServiceUrl/$imageId/';
+    // If imageId is a full S3 URL, return as is
+    if (imageId.startsWith('http')) return imageId;
+    // Otherwise, build S3 URL from env
+    return '$imageServiceUrl/$imageId';
   }
 
   // Order endpoints
