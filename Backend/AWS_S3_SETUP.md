@@ -73,3 +73,65 @@ AWS_S3_REGION=your-region
 ---
 
 For questions, see AWS S3 documentation or ask your backend developer.
+
+---
+
+## Mobile App Camera & Gallery Permissions (Flutter)
+
+To support capturing images from the camera and selecting from the gallery in the Flutter app (chat image upload & product images), add the following platform-specific permissions.
+
+### Android
+
+Add these lines near the top of `AgriCart/android/app/src/main/AndroidManifest.xml` (already added if you see them):
+
+```xml
+<uses-permission android:name="android.permission.CAMERA"/>
+<!-- Android 13+ (API 33) for reading images from gallery -->
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+```
+
+Notes:
+- If your compile/target SDK < 33 you may still need `READ_EXTERNAL_STORAGE` for older devices; current implementation relies on scoped storage so it's not required for most cases.
+- The `image_picker` plugin will handle runtime permission prompts automatically. If you implement custom camera flows, use `permission_handler` or `ActivityCompat.requestPermissions`.
+- Keep `android.permission.POST_NOTIFICATIONS` if you want Firebase messaging notifications on Android 13+.
+
+### iOS
+
+Add usage description keys to `AgriCart/ios/Runner/Info.plist` (already inserted if present):
+
+```xml
+<key>NSCameraUsageDescription</key>
+<string>This app needs camera access to capture product and chat images.</string>
+<key>NSPhotoLibraryUsageDescription</key>
+<string>This app needs photo library access to select images for chat and products.</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>Microphone may be needed for future video capture features.</string>
+```
+
+### Testing Permissions
+
+1. Run on a physical device or emulator.
+2. Tap the attachment icon in the chat screen.
+3. Choose Camera or Gallery.
+4. On first use, OS should prompt for permission. Grant it and verify upload succeeds.
+
+### Common Issues
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| Camera returns black image | Emulator lacks camera | Test on physical device or configure emulator camera input |
+| Permission denied error | User rejected prompt | In app, show retry UI or direct to Settings |
+| iOS build fails after adding keys | Plist syntax error | Ensure keys are inside `<dict>` and XML is well-formed |
+| Android gallery empty | Missing READ_MEDIA_IMAGES (API 33+) | Confirm permission in manifest & rebuild |
+
+### Rebuilding After Changes
+
+After altering manifest or Info.plist:
+
+```bash
+flutter clean
+flutter pub get
+flutter run
+```
+
+---

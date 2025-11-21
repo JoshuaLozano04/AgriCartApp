@@ -6,6 +6,7 @@ urlpatterns = [
     path('messages/conversations/', views.get_user_conversations, name='get_user_conversations'),
     path('messages/conversation/<str:conversation_id>/', views.get_conversation_messages, name='get_conversation_messages'),
     path('messages/conversation/<str:conversation_id>/mark-read/', views.mark_conversation_read, name='mark_conversation_read'),
+    path('messages/upload-image/', views.upload_chat_image, name='upload_chat_image'),
     path('messages/send/', views.send_message_rest, name='send_message_rest'),
 ]
 

@@ -2,11 +2,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/auth/auth_state.dart';
 import '../../services/api_service.dart';
 import '../../services/chat_socket_service.dart';
 import '../../theme/app_theme.dart';
+import '../../bloc/chat_image/chat_image_bloc.dart';
+import '../../bloc/chat_image/chat_image_event.dart';
+import '../../bloc/chat_image/chat_image_state.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String conversationId;
@@ -29,6 +34,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   ChatSocketService? _socketService;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  late final ChatImageBloc _chatImageBloc;
 
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = true;
@@ -46,6 +52,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     super.initState();
     _loadMessages();
     _initializeSocket();
+    _chatImageBloc = ChatImageBloc(apiService: _apiService);
   }
 
   @override
@@ -54,6 +61,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _scrollController.dispose();
     _typingTimer?.cancel();
     _socketService?.dispose();
+    _chatImageBloc.close();
     super.dispose();
   }
 
@@ -321,6 +329,58 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
+  // Image picking/uploading is handled by ChatImageBloc now.
+
+  void _addSentImageMessage({required String imageUrl, String? messageId}) {
+    final currentUserId = _getCurrentUserId();
+    final imageMessage = {
+      'message_id': messageId ?? 'temp_${DateTime.now().millisecondsSinceEpoch}',
+      'conversation_id': widget.conversationId,
+      'sender_id': currentUserId,
+      'receiver_id': widget.otherUserId,
+      'message': '📷 Image',
+      'message_type': 'image',
+      'metadata': {'type': 'image', 'image_url': imageUrl},
+      'created_at': DateTime.now().toIso8601String(),
+      'is_read': false,
+      'status': 'sent',
+    };
+    setState(() {
+      _messages.add(imageMessage);
+    });
+    _scrollToBottom();
+  }
+
+  void _addFailedImageMessage({required String localPath, String? imageUrl, String? reason}) {
+    final currentUserId = _getCurrentUserId();
+    final failedMessage = {
+      'message_id': 'fail_${DateTime.now().millisecondsSinceEpoch}',
+      'conversation_id': widget.conversationId,
+      'sender_id': currentUserId,
+      'receiver_id': widget.otherUserId,
+      'message': 'Image failed',
+      'message_type': 'image',
+      'metadata': {
+        'type': 'image',
+        if (imageUrl != null) 'image_url': imageUrl,
+        'local_path': localPath,
+        'error': reason ?? 'Unknown error',
+      },
+      'created_at': DateTime.now().toIso8601String(),
+      'is_read': false,
+      'status': 'failed',
+    };
+    setState(() => _messages.add(failedMessage));
+    _scrollToBottom();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Image failed: ${reason ?? 'Unknown'}'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  // Retry handled by ChatImageBloc; UI dispatches a ChatImageRetryRequested event.
+
   String _formatMessageTime(dynamic timestamp) {
     if (timestamp == null) return '';
 
@@ -347,40 +407,48 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         final currentUserId =
             state is AuthAuthenticated ? state.user.userId : '';
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(widget.otherUserName),
-            actions: [
-              if (!_isConnected)
-                const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Icon(Icons.cloud_off, size: 20),
-                ),
-            ],
-          ),
-          body: Column(
-            children: [
-              // Connection status banner
-              if (!_isConnected && !_isLoading)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(8),
-                  color: Colors.orange,
-                  child: const Text(
-                    'Reconnecting...',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                ),
-
-              // Messages list
-              Expanded(
-                child: _buildMessagesList(currentUserId),
+        return BlocProvider.value(
+          value: _chatImageBloc,
+          child: BlocListener<ChatImageBloc, ChatImageState>(
+            listener: (context, state) {
+              if (state is ChatImageUploadSuccess) {
+                _addSentImageMessage(imageUrl: state.imageUrl);
+              } else if (state is ChatImageUploadFailure) {
+                _addFailedImageMessage(localPath: state.localPath, reason: state.error);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Image upload failed: ${state.error}'), backgroundColor: Colors.red),
+                );
+              }
+            },
+            child: Scaffold(
+              appBar: AppBar(
+                title: Text(widget.otherUserName),
+                actions: [
+                  if (!_isConnected)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Icon(Icons.cloud_off, size: 20),
+                    ),
+                ],
               ),
-
-              // Input area
-              _buildInputArea(),
-            ],
+              body: Column(
+                children: [
+                  if (!_isConnected && !_isLoading)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(8),
+                      color: Colors.orange,
+                      child: const Text(
+                        'Reconnecting...',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ),
+                  Expanded(child: _buildMessagesList(currentUserId)),
+                  _buildInputArea(),
+                ],
+              ),
+            ),
           ),
         );
       },
@@ -390,7 +458,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Widget _buildMessagesList(String currentUserId) {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: AppTheme.primaryGreen),
+        child: CircularProgressIndicator(),
       );
     }
 
@@ -465,6 +533,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     String? status,
   ) {
     final text = message['message'] ?? '';
+    final messageType = message['message_type'] ?? message['metadata']?['type'];
+    final imageUrl = (messageType == 'image')
+        ? (message['metadata'] is Map ? message['metadata']['image_url'] : null)
+        : null;
     final timestamp = message['created_at'];
     final isRead = message['is_read'] == true;
 
@@ -488,13 +560,114 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              text,
-              style: TextStyle(
-                color: isMe ? Colors.white : Colors.black87,
-                fontSize: 15,
+            if (imageUrl != null) ...[
+              GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => Dialog(
+                      insetPadding: const EdgeInsets.all(16),
+                      child: InteractiveViewer(
+                        child: CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          placeholder: (c, _) => const SizedBox(
+                            height: 200,
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                          errorWidget: (c, _, __) => const Icon(Icons.broken_image, size: 64),
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
+                    children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        width: 200,
+                        height: 200,
+                        fit: BoxFit.cover,
+                        placeholder: (c, _) => Container(
+                          width: 200,
+                          height: 200,
+                          color: Colors.black12,
+                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        ),
+                        errorWidget: (c, _, __) => Container(
+                          width: 200,
+                          height: 200,
+                          color: Colors.black12,
+                          child: const Icon(Icons.broken_image, size: 40),
+                        ),
+                      ),
+                    ),
+                    if (status == 'failed') Positioned(
+                      right: 8,
+                      top: 8,
+                      child: GestureDetector(
+                        onTap: () {
+                          final localPath = message['metadata'] is Map ? message['metadata']['local_path'] : null;
+                          if (localPath != null) {
+                            context.read<ChatImageBloc>().add(ChatImageRetryRequested(localPath: localPath, receiverId: widget.otherUserId));
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Local file not available for retry'), backgroundColor: Colors.red),
+                            );
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.8),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.refresh, size: 18, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                    if (status == 'retrying') Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.blueGrey.withOpacity(0.7),
+                          shape: BoxShape.circle,
+                        ),
+                          child: const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 8),
+              if (text.isNotEmpty && text != '📷 Image')
+                Text(
+                  text,
+                  style: TextStyle(
+                    color: isMe ? Colors.white : Colors.black87,
+                    fontSize: 15,
+                  ),
+                ),
+            ] else ...[
+              Text(
+                text,
+                style: TextStyle(
+                  color: isMe ? Colors.white : Colors.black87,
+                  fontSize: 15,
+                ),
+              ),
+            ],
             const SizedBox(height: 4),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -560,6 +733,35 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           // Input row
           Row(
             children: [
+              // Image picker button (uses ChatImageBloc)
+              PopupMenuButton<String>(
+                tooltip: 'Attach',
+                icon: BlocBuilder<ChatImageBloc, ChatImageState>(
+                  builder: (context, state) {
+                    if (state is ChatImageUploading) {
+                      return const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: const CircularProgressIndicator(strokeWidth: 2),
+                      );
+                    }
+                    return const Icon(Icons.add_photo_alternate, color: Colors.blueGrey);
+                  },
+                ),
+                onSelected: (value) {
+                  final bloc = context.read<ChatImageBloc>();
+                  if (bloc.state is ChatImageUploading) return;
+                  if (value == 'gallery') {
+                    bloc.add(ChatImagePickRequested(source: ImageSource.gallery, receiverId: widget.otherUserId));
+                  } else if (value == 'camera') {
+                    bloc.add(ChatImagePickRequested(source: ImageSource.camera, receiverId: widget.otherUserId));
+                  }
+                },
+                itemBuilder: (c) => [
+                  const PopupMenuItem(value: 'camera', child: ListTile(leading: Icon(Icons.photo_camera), title: Text('Camera'))),
+                  const PopupMenuItem(value: 'gallery', child: ListTile(leading: Icon(Icons.photo_library), title: Text('Gallery'))),
+                ],
+              ),
               Expanded(
                 child: TextField(
                   controller: _messageController,

@@ -333,9 +333,45 @@ class ApiService {
       Uri.parse('$baseUrl/messages/send/'),
       headers: headers,
       body: json.encode({
-        // sender_id comes from token
         'receiver_id': receiverId,
         'message': message,
+      }),
+    );
+    return _handleResponse(response);
+  }
+
+  /// Upload an image for chat and get S3 URL
+  Future<Map<String, dynamic>> uploadChatImage(File imageFile) async {
+    final headers = await _getAuthHeaders();
+    headers.remove('Content-Type'); // multipart sets its own
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/messages/upload-image/'),
+    );
+    request.headers.addAll(headers);
+    request.files.add(
+      await http.MultipartFile.fromPath('image', imageFile.path),
+    );
+    final streamed = await request.send();
+    final resp = await http.Response.fromStream(streamed);
+    return _handleResponse(resp);
+  }
+
+  /// Send an image message (after upload)
+  Future<Map<String, dynamic>> sendImageMessage(
+    String receiverId,
+    String imageUrl, {
+    String? caption,
+  }) async {
+    final headers = await _getAuthHeaders();
+    final response = await http.post(
+      Uri.parse('$baseUrl/messages/send/'),
+      headers: headers,
+      body: json.encode({
+        'receiver_id': receiverId,
+        'message_type': 'image',
+        'image_url': imageUrl,
+        'message': caption ?? '',
       }),
     );
     return _handleResponse(response);

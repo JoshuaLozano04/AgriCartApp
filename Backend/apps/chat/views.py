@@ -1,15 +1,18 @@
 """
-Chat/messaging REST API views for conversation management.
+"""Chat/messaging REST API views for conversation management.
 Real-time messaging is handled via WebSocket in consumers.py
 """
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from utils.mongodb_service import MongoDBService
 from utils.fcm_service import FCMService
 from utils.notification_service import NotificationService
+from utils.s3_service import upload_file_to_s3
 import uuid
+import os
 
 
 @api_view(['POST'])
@@ -263,6 +266,78 @@ def mark_conversation_read(request, conversation_id):
 
 
 @api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+def upload_chat_image(request):
+    """Upload an image for chat and return the S3 URL."""
+    # Check authentication
+    if not hasattr(request, 'user') or not request.user or not hasattr(request.user, 'user_id'):
+        return Response({
+            'success': False,
+            'message': 'Authentication required'
+        }, status=status.HTTP_401_UNAUTHORIZED)
+    
+    # Check if image file is present
+    if 'image' not in request.FILES:
+        return Response({
+            'success': False,
+            'message': 'No image file provided'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    image_file = request.FILES['image']
+    
+    try:
+        # Validate file is an image
+        content_type = getattr(image_file, 'content_type', None)
+        file_name = getattr(image_file, 'name', '')
+        file_ext = os.path.splitext(file_name)[1].lower()
+        
+        # Check if content_type is an image type
+        is_image_by_type = content_type and content_type.startswith('image/')
+        
+        # Check if file extension suggests it's an image
+        valid_image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp']
+        is_image_by_ext = file_ext in valid_image_extensions
+        
+        if not is_image_by_type and not is_image_by_ext:
+            return Response({
+                'success': False,
+                'message': 'Invalid file type. Only image files are allowed.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Generate unique filename
+        file_ext = os.path.splitext(image_file.name)[1] or '.jpg'
+        unique_filename = f"{uuid.uuid4()}{file_ext}"
+        
+        # Read file content
+        image_file.seek(0)
+        file_content = image_file.read()
+        
+        # Upload to AWS S3
+        from io import BytesIO
+        file_obj = BytesIO(file_content)
+        img_content_type = getattr(image_file, 'content_type', 'image/jpeg')
+        s3_url = upload_file_to_s3(file_obj, unique_filename, folder='chat', content_type=img_content_type)
+        
+        print(f"DEBUG: Successfully uploaded chat image to S3")
+        print(f"DEBUG:   - Filename: {unique_filename}")
+        print(f"DEBUG:   - S3 URL: {s3_url}")
+        
+        return Response({
+            'success': True,
+            'image_url': s3_url
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"ERROR: Failed to upload chat image: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'Failed to upload image: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
 def send_message_rest(request):
     """Send a message via REST API (fallback when WebSocket is not available)."""
     # Check authentication
@@ -276,11 +351,21 @@ def send_message_rest(request):
     conversation_id = request.data.get('conversation_id')
     receiver_id = request.data.get('receiver_id')
     message_text = request.data.get('message', '').strip()
+    message_type = request.data.get('message_type', 'text')  # 'text' or 'image'
+    image_url = request.data.get('image_url', '')  # For image messages
     
-    if not message_text:
+    # For text messages, message cannot be empty
+    # For image messages, image_url is required
+    if message_type == 'text' and not message_text:
         return Response({
             'success': False,
             'message': 'Message cannot be empty'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    if message_type == 'image' and not image_url:
+        return Response({
+            'success': False,
+            'message': 'Image URL is required for image messages'
         }, status=status.HTTP_400_BAD_REQUEST)
     
     try:
@@ -345,12 +430,26 @@ def send_message_rest(request):
         
         # Create message
         message_id = str(uuid.uuid4())
+        
+        # Prepare metadata for image messages
+        metadata = {}
+        if message_type == 'image':
+            metadata = {
+                'type': 'image',
+                'image_url': image_url
+            }
+        
+        # Display message for conversation list
+        display_message = message_text if message_type == 'text' else '📷 Image'
+        
         message_data = {
             'message_id': message_id,
             'conversation_id': conversation_id,
             'sender_id': sender_id,
             'receiver_id': receiver_id,
-            'message': message_text,
+            'message': message_text or display_message,
+            'message_type': message_type,
+            'metadata': metadata,
             'is_read': False,
             'created_at': 'SERVER_TIMESTAMP',
             'updated_at': 'SERVER_TIMESTAMP'
@@ -360,18 +459,19 @@ def send_message_rest(request):
         
         # Update conversation
         MongoDBService.update_document('conversations', conversation_id, {
-            'last_message': message_text,
+            'last_message': display_message,
             'last_message_at': 'SERVER_TIMESTAMP',
             'updated_at': 'SERVER_TIMESTAMP'
         })
         
         # Create notification and push if unread
         try:
+            notification_body = display_message if message_type == 'text' else '📷 Sent an image'
             NotificationService().create_notification(
                 user_id=receiver_id,
                 notification_type='chat_message',
                 title='New Message',
-                body=message_text,
+                body=notification_body,
                 data={'thread_id': conversation_id}
             )
             NotificationService().send_unread_for_user(receiver_id)

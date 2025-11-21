@@ -47,6 +47,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Camera & Photo Library usage descriptions for image picker -->
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to capture product and chat images.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to select images for chat and products.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access may be needed when capturing videos (future features).</string>
 </dict>
 </plist>
 
