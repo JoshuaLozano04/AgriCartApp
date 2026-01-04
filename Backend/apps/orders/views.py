@@ -164,8 +164,8 @@ def create_order(request):
             'shipping_longitude': data.get('shipping_longitude'),
             'payment_method': data['payment_method'],
             'total_amount': data['total_amount'],
-            'status': 'pending',
             'payment_status': 'pending',
+            'status': 'pending',
             'created_at': 'SERVER_TIMESTAMP',
             'updated_at': 'SERVER_TIMESTAMP'
         }
