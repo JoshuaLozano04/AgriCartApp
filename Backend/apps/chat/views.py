@@ -1,4 +1,3 @@
-"""
 """Chat/messaging REST API views for conversation management.
 Real-time messaging is handled via WebSocket in consumers.py
 """
