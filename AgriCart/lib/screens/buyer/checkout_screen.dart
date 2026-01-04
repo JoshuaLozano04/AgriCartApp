@@ -13,6 +13,8 @@ import '../../services/api_service.dart';
 import '../../models/order.dart';
 import '../../navigation/app_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../widgets/location_search_field.dart';
+import '../../services/mapbox_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -23,6 +25,8 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final _addressController = TextEditingController();
+  double? _deliveryLat;
+  double? _deliveryLng;
   String _selectedPaymentMethod = 'cod';
   final _formKey = GlobalKey<FormState>();
 
@@ -226,24 +230,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                       ],
                                     ),
                                     const SizedBox(height: 16),
-                                    TextFormField(
-                                      controller: _addressController,
-                                      decoration: const InputDecoration(
-                                        hintText:
-                                            'Enter your complete shipping address',
-                                        prefixIcon: Icon(Icons.home_outlined),
-                                      ),
-                                      maxLines: 3,
-                                      textCapitalization:
-                                          TextCapitalization.words,
-                                      validator: (value) {
-                                        if (value == null || value.isEmpty) {
-                                          return 'Please enter shipping address';
-                                        }
-                                        if (value.length < 10) {
-                                          return 'Please enter a complete address';
-                                        }
-                                        return null;
+                                    LocationSearchField(
+                                      initialValue: _addressController.text,
+                                      onPlaceSelected: (MapboxPlace place) {
+                                        _addressController.text = place.placeName;
+                                        _deliveryLat = place.latitude;
+                                        _deliveryLng = place.longitude;
                                       },
                                     ),
                                   ],
@@ -488,6 +480,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                               shippingAddress:
                                                   _addressController.text
                                                       .trim(),
+                                              shippingLatitude: _deliveryLat,
+                                              shippingLongitude: _deliveryLng,
                                               paymentMethod:
                                                   _selectedPaymentMethod,
                                               totalAmount: cart.totalAmount,

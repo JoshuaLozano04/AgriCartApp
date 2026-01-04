@@ -6,6 +6,8 @@ import '../../bloc/seller/seller_bloc.dart';
 import '../../bloc/seller/seller_event.dart';
 import '../../bloc/seller/seller_state.dart';
 import '../../services/api_service.dart';
+import '../../widgets/location_search_field.dart';
+import '../../services/mapbox_service.dart';
 import '../../models/product.dart';
 
 class AddProductScreen extends StatefulWidget {
@@ -24,6 +26,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _priceController = TextEditingController();
   final _quantityController = TextEditingController();
   final _locationController = TextEditingController();
+  double? _latitude;
+  double? _longitude;
   String _selectedCategory = 'fresh_produce';
   String _selectedUnit = 'piece';
   List<XFile> _selectedImages = [];
@@ -183,14 +187,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _locationController,
-                    decoration: const InputDecoration(
-                      labelText: 'Location',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) =>
-                        value!.isEmpty ? 'Please enter location' : null,
+                  LocationSearchField(
+                    initialValue: _locationController.text,
+                    onPlaceSelected: (MapboxPlace place) {
+                      _locationController.text = place.placeName;
+                      _latitude = place.latitude;
+                      _longitude = place.longitude;
+                    },
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
@@ -241,6 +244,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               quantity: int.parse(_quantityController.text),
                               unit: _selectedUnit,
                               location: _locationController.text.trim(),
+                              latitude: _latitude,
+                              longitude: _longitude,
                               imagePaths: [],
                               isActive: true,
                             );

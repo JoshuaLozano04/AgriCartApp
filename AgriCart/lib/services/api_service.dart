@@ -230,6 +230,8 @@ class ApiService {
         'seller_id': order.sellerId,
         'items': order.items.map((item) => item.toJson()).toList(),
         'shipping_address': order.shippingAddress,
+        if (order.shippingLatitude != null) 'shipping_latitude': order.shippingLatitude,
+        if (order.shippingLongitude != null) 'shipping_longitude': order.shippingLongitude,
         'payment_method': order.paymentMethod,
         'total_amount': order.totalAmount,
       }),

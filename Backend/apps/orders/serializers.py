@@ -17,6 +17,8 @@ class OrderSerializer(serializers.Serializer):
     # seller_id will be extracted from items' products
     items = OrderItemSerializer(many=True)
     shipping_address = serializers.CharField()
+    shipping_latitude = serializers.FloatField(required=False)
+    shipping_longitude = serializers.FloatField(required=False)
     payment_method = serializers.ChoiceField(choices=['cod', 'gcash'])
     total_amount = serializers.FloatField(min_value=0)
 

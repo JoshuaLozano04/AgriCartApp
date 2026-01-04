@@ -160,6 +160,8 @@ def create_order(request):
             'seller_id': seller_id,
             'items': [dict(item) for item in data['items']],
             'shipping_address': MongoDBService.sanitize_string(data['shipping_address'], max_length=500),
+            'shipping_latitude': data.get('shipping_latitude'),
+            'shipping_longitude': data.get('shipping_longitude'),
             'payment_method': data['payment_method'],
             'total_amount': data['total_amount'],
             'status': 'pending',

@@ -36,6 +36,8 @@ class Order {
   final String shippingAddress;
   final String paymentMethod;
   final double totalAmount;
+  final double? shippingLatitude;
+  final double? shippingLongitude;
   final String status;
   final String? paymentStatus;
   final String? trackingNumber;
@@ -50,6 +52,8 @@ class Order {
     required this.shippingAddress,
     required this.paymentMethod,
     required this.totalAmount,
+    this.shippingLatitude,
+    this.shippingLongitude,
     required this.status,
     this.paymentStatus,
     this.trackingNumber,
@@ -66,6 +70,8 @@ class Order {
       shippingAddress: json['shipping_address'] ?? '',
       paymentMethod: json['payment_method'] ?? 'cod',
       totalAmount: (json['total_amount'] ?? 0).toDouble(),
+      shippingLatitude: json['shipping_latitude']?.toDouble(),
+      shippingLongitude: json['shipping_longitude']?.toDouble(),
       status: json['status'] ?? 'pending',
       paymentStatus: json['payment_status'],
       trackingNumber: json['tracking_number'],
@@ -81,6 +87,8 @@ class Order {
       'seller_id': sellerId,
       'items': items.map((item) => item.toJson()).toList(),
       'shipping_address': shippingAddress,
+      'shipping_latitude': shippingLatitude,
+      'shipping_longitude': shippingLongitude,
       'payment_method': paymentMethod,
       'total_amount': totalAmount,
       'status': status,
