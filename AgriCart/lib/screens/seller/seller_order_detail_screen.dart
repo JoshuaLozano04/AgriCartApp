@@ -225,28 +225,27 @@ class _AddressAndPayment extends StatelessWidget {
                 }
 
                 final center = latlng.LatLng((sellerLat + destLat) / 2, (sellerLng + destLng) / 2);
-                final bounds = latlng.LatLngBounds.fromPoints([
-                  latlng.LatLng(sellerLat, sellerLng),
-                  latlng.LatLng(destLat, destLng),
-                ]);
                 final mapboxToken = dotenv.env['MAPBOX_API_KEY'] ?? '';
 
                 return Container(
                   margin: const EdgeInsets.only(top: 8),
                   height: 160,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), overflow: Overflow.hidden),
-                  child: FlutterMap(
-                    options: MapOptions(center: center, bounds: bounds, boundsOptions: FitBoundsOptions(padding: EdgeInsets.all(12))),
-                    nonRotatedChildren: [
-                      TileLayer(urlTemplate: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/256/{z}/{x}/{y}@2x?access_token=$mapboxToken', additionalOptions: {'accessToken': mapboxToken}),
-                    ],
-                    children: [
-                      MarkerLayer(markers: [
-                        Marker(width: 36, height: 36, point: latlng.LatLng(sellerLat, sellerLng), builder: (ctx) => const Icon(Icons.local_shipping, color: Colors.green, size: 30)),
-                        Marker(width: 32, height: 32, point: latlng.LatLng(destLat, destLng), builder: (ctx) => const Icon(Icons.location_on, color: Colors.red, size: 30)),
-                      ]),
-                      PolylineLayer(polylines: [Polyline(points: [latlng.LatLng(sellerLat, sellerLng), latlng.LatLng(destLat, destLng)], strokeWidth: 3.0, color: Colors.green)]),
-                    ],
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: FlutterMap(
+                      options: MapOptions(center: center, zoom: 12),
+                      nonRotatedChildren: [
+                        TileLayer(urlTemplate: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/256/{z}/{x}/{y}@2x?access_token=$mapboxToken', additionalOptions: {'accessToken': mapboxToken}),
+                      ],
+                      children: [
+                        MarkerLayer(markers: [
+                          Marker(width: 36, height: 36, point: latlng.LatLng(sellerLat, sellerLng), builder: (ctx) => const Icon(Icons.local_shipping, color: Colors.green, size: 30)),
+                          Marker(width: 32, height: 32, point: latlng.LatLng(destLat, destLng), builder: (ctx) => const Icon(Icons.location_on, color: Colors.red, size: 30)),
+                        ]),
+                        PolylineLayer(polylines: [Polyline(points: [latlng.LatLng(sellerLat, sellerLng), latlng.LatLng(destLat, destLng)], strokeWidth: 3.0, color: Colors.green)]),
+                      ],
+                    ),
                   ),
                 );
               },
