@@ -16,11 +16,16 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 from apps.payments import views as payment_views
 
 urlpatterns = [
+    # Redirect bare root to API root
+    path('', RedirectView.as_view(url='/api/', permanent=False)),
+    # Handle requests to /api (without trailing slash)
+    path('api', RedirectView.as_view(url='/api/', permanent=True)),
     path('admin/', admin.site.urls),
     # Payment pages (public, accessible without /api prefix for PayMongo redirects)
     path('payment/redirect/', payment_views.payment_redirect, name='payment_redirect'),
