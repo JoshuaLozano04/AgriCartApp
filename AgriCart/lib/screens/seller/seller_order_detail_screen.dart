@@ -9,6 +9,24 @@ import '../../theme/app_theme.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as latlng;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+Future<List<latlng.LatLng>> _getRouteForSeller(double startLat, double startLng, double endLat, double endLng, String token) async {
+  try {
+    final url = 'https://api.mapbox.com/directions/v5/mapbox/driving/$startLng,$startLat;$endLng,$endLat?geometries=geojson&access_token=$token';
+    final response = await http.get(Uri.parse(url));
+    
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final coordinates = data['routes'][0]['geometry']['coordinates'] as List;
+      return coordinates.map((coord) => latlng.LatLng(coord[1], coord[0])).toList();
+    }
+  } catch (e) {
+    print('Error fetching route: $e');
+  }
+  return [latlng.LatLng(startLat, startLng), latlng.LatLng(endLat, endLng)];
+}
 
 class SellerOrderDetailScreen extends StatelessWidget {
   final String orderId;
@@ -226,27 +244,96 @@ class _AddressAndPayment extends StatelessWidget {
 
                 final center = latlng.LatLng((sellerLat + destLat) / 2, (sellerLng + destLng) / 2);
                 final mapboxToken = dotenv.env['MAPBOX_API_KEY'] ?? '';
+                
+                // Calculate zoom to fit both markers
+                final latDiff = (sellerLat - destLat).abs();
+                final lngDiff = (sellerLng - destLng).abs();
+                final maxDiff = latDiff > lngDiff ? latDiff : lngDiff;
+                double zoomLevel = 10;
+                if (maxDiff > 0.5) zoomLevel = 8;
+                else if (maxDiff > 0.2) zoomLevel = 9;
+                else if (maxDiff > 0.1) zoomLevel = 9.5;
 
-                return Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  height: 160,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: FlutterMap(
-                      options: MapOptions(center: center, zoom: 12),
-                      nonRotatedChildren: [
-                        TileLayer(urlTemplate: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/256/{z}/{x}/{y}@2x?access_token=$mapboxToken', additionalOptions: {'accessToken': mapboxToken}),
-                      ],
-                      children: [
-                        MarkerLayer(markers: [
-                          Marker(width: 36, height: 36, point: latlng.LatLng(sellerLat, sellerLng), builder: (ctx) => const Icon(Icons.local_shipping, color: Colors.green, size: 30)),
-                          Marker(width: 32, height: 32, point: latlng.LatLng(destLat, destLng), builder: (ctx) => const Icon(Icons.location_on, color: Colors.red, size: 30)),
-                        ]),
-                        PolylineLayer(polylines: [Polyline(points: [latlng.LatLng(sellerLat, sellerLng), latlng.LatLng(destLat, destLng)], strokeWidth: 3.0, color: Colors.green)]),
-                      ],
-                    ),
-                  ),
+                return FutureBuilder<List<latlng.LatLng>>(
+                  future: _getRouteForSeller(sellerLat, sellerLng, destLat, destLng, mapboxToken),
+                  builder: (context, routeSnapshot) {
+                    final routePoints = routeSnapshot.data ?? [
+                      latlng.LatLng(sellerLat, sellerLng),
+                      latlng.LatLng(destLat, destLng)
+                    ];
+
+                    return Container(
+                      margin: const EdgeInsets.only(top: 8),
+                      height: 200,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.textGray.withOpacity(0.2), width: 1),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: FlutterMap(
+                          options: MapOptions(
+                            center: center,
+                            zoom: zoomLevel,
+                            interactiveFlags: InteractiveFlag.none,
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/256/{z}/{x}/{y}@2x?access_token=$mapboxToken',
+                              additionalOptions: {'accessToken': mapboxToken},
+                            ),
+                            PolylineLayer(polylines: [
+                              Polyline(
+                                points: routePoints,
+                                strokeWidth: 4.0,
+                                color: Colors.blue.shade600,
+                              ),
+                            ]),
+                            MarkerLayer(markers: [
+                              Marker(
+                                width: 50,
+                                height: 50,
+                                point: latlng.LatLng(sellerLat, sellerLng),
+                                builder: (ctx) => Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(Icons.local_shipping, color: Colors.blue, size: 28),
+                                ),
+                              ),
+                              Marker(
+                                width: 50,
+                                height: 50,
+                                point: latlng.LatLng(destLat, destLng),
+                                builder: (ctx) => Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(Icons.location_on, color: Colors.red, size: 28),
+                                ),
+                              ),
+                            ]),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),
