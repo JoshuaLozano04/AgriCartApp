@@ -1,6 +1,6 @@
 # AgriCart - Agricultural Marketplace
 
-🌾 **AgriCart** - Agricultural marketplace app connecting farmers, local buyers, suppliers, and agribusinesses in the Philippines. Built with Flutter and Django, featuring real-time chat, multiple payment options, and comprehensive analytics.
+**AgriCart** - Agricultural marketplace app connecting farmers, local buyers, suppliers, and agribusinesses in the Philippines. Built with Flutter and Django, featuring real-time chat, multiple payment options, and comprehensive analytics.
 
 ## About
 
